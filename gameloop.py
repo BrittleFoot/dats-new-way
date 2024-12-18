@@ -1,6 +1,6 @@
-import queue
 import threading
 from logging import getLogger
+from time import sleep
 
 from client import ApiClient
 
@@ -9,45 +9,52 @@ api = ApiClient("test")
 logger = getLogger(__name__)
 
 
-def empty_queue(queue: queue.Queue):
-    while queue.qsize() > 0:
-        yield queue.get_nowait()
+class Gameloop:
+    def __init__(self):
+        self.running = True
+
+        self.world = []
+        self.whole_world = []
+        self.turn = 0
+        self.next_time = 0
+
+    def loop(self):
+        try:
+            while self.running:
+                info = api.test_world()
+
+                next_time = info["next"]
+                timeout = info["turnEndsInSec"]
+                world = info["map"]
+                turn = info["turn"]
+
+                self.world = world
+
+                self.whole_world.extend(world)
+                self.turn = turn
+                self.next_time = next_time
+
+                sleep(timeout)
+
+        except Exception as e:
+            logger.error("Gameloop error: %s", exc_info=e)
+        finally:
+            self.running = False
+
+    def launch_async(self):
+        executor_thread = threading.Thread(
+            target=self.loop,
+            daemon=True,
+        )
+        executor_thread.start()
+        return self
 
 
-def command_executor(command_queue: queue.Queue):
+if __name__ == "__main__":
+    gameloop = Gameloop().launch_async()
+
     try:
         while True:
-            round = api.test_world()
-            print(round)
-
-            next_time = round["next"]
-            timeout = round["turnEndsInSec"]
-
-            try:
-                commands = list(empty_queue(command_queue))
-            except queue.Empty:
-                # No command received in this round, skipping
-                command = None
-
-            logger
-
-            if command == "exit":
-                break
-    finally:
-        print("Command executor stopped")
-
-
-command_queue = queue.Queue()
-executor_thread = threading.Thread(
-    target=command_executor,
-    args=(command_queue,),
-    daemon=True,
-)
-executor_thread.start()
-
-
-try:
-    while True:
-        command_queue.put(input("Enter command: "))
-except KeyboardInterrupt:
-    command_queue.put("exit")
+            input()
+    except KeyboardInterrupt:
+        pass

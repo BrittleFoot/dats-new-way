@@ -7,3 +7,4 @@ uvicorn
 
 pygame
 imgui[pygame]
+numpy

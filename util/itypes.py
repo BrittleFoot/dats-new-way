@@ -57,6 +57,9 @@ class Vec2(NamedTuple):
     def ZERO() -> "Vec2":
         return Vec2(0, 0)
 
+    def __str__(self) -> str:
+        return f"({self.x:.2f}, {self.y:.2f})"
+
 
 class Color(NamedTuple):
     r: float

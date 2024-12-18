@@ -188,6 +188,16 @@ class DrawWorld:
     def fromgrid(self, grid_coords):
         return Vec2(*grid_coords) * self.size + self.soffset
 
+    def status_window(self):
+        imgui.push_style_color(imgui.COLOR_CHILD_BACKGROUND, 0.1, 0.2, 0.1, 0.7)
+        imgui.begin_child("State", border=True, width=180, height=90)
+        imgui.text_ansi(f"Turn: {self.gameloop.turn}")
+        imgui.text_ansi(f"Next: {self.gameloop.next_time:.2f}")
+        imgui.text_ansi(f"Ofst: {self.offset}")
+        imgui.text_ansi(f"Scle: {self.scale:.2f}")
+        imgui.end_child()
+        imgui.pop_style_color()
+
     def main(self):
         while 1:
             self.handle_system_events()
@@ -213,12 +223,13 @@ class DrawWorld:
                 self.window_mouse_pos = Vec2(*imgui.get_mouse_pos())
 
                 brush = Brush(self)
-                brush.square(self.fromgrid((0, 0)), (1, 0, 0, 1))
-                brush.square(self.fromgrid((1, 1)), (1, 0, 0, 1))
-                brush.square(self.fromgrid((2, 2)), (1, 0, 0, 1))
 
-                brush.image(self.fromgrid((5, 5)), "snowman_happy")
-                brush.image(self.fromgrid((5, 6)), "snowman_angry")
+                brush.image(self.fromgrid((0, 0)), "snowman_happy")
+                brush.image(self.fromgrid((6, 6)), "snowman_angry")
+
+                self.draw_world(brush)
+
+                self.status_window()
 
                 x, y = self.get_win_mouse_pos()
 
@@ -241,6 +252,14 @@ class DrawWorld:
 
             ###############################
             self.clear_render()
+
+    def draw_world(self, brush: Brush):
+        """Override this method to draw the world"""
+        pass
+
+    def draw_ui(self):
+        """Override this method to draw the UI"""
+        pass
 
 
 if __name__ == "__main__":
