@@ -1,0 +1,9 @@
+httpx[http2]
+python-dotenv
+fire
+
+fastapi
+uvicorn
+
+pygame
+imgui[pygame]
