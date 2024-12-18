@@ -14,7 +14,7 @@ class Gameloop:
         self.running = True
 
         self.world = []
-        self.whole_world = []
+        self.whole_world = {}
         self.turn = 0
         self.next_time = 0
 
@@ -30,7 +30,6 @@ class Gameloop:
 
                 self.world = world
 
-                self.whole_world.extend(world)
                 self.turn = turn
                 self.next_time = next_time
 

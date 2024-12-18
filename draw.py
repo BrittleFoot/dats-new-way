@@ -84,12 +84,13 @@ class Brush:
         color: Color = Color(1, 1, 1, 1),
         offset_percent=Vec2(0, 0),
         scale_percent=Vec2(1, 1),
+        **kwargs,
     ):
         size = scale_percent * self.world.size
         a = Vec2(*center) - size / 2 + offset_percent * size
         b = Vec2(*center) + size / 2 + offset_percent * size
 
-        texture = get_texture_cached(name)
+        texture = get_texture_cached(name, **kwargs)
 
         start = self.zero + a
         end = self.zero + b
@@ -146,6 +147,10 @@ class DrawWorld:
     @property
     def vscale(self):
         return Vec2(self.scale, self.scale)
+
+    @property
+    def S(self):
+        return Vec2(SIZE, SIZE)
 
     @property
     def size(self):
@@ -255,12 +260,17 @@ class DrawWorld:
 
             imgui.new_frame()
 
-            imgui.set_next_window_size(*(self.WIN_SIZE * Vec2(0.7, 1) - 2 * SIZE))
-            imgui.set_next_window_position(*Vec2(SIZE + self.WIN_SIZE.x * 0.3, SIZE))
             if imgui.is_mouse_dragging(imgui.BUTTON_MOUSE_BUTTON_RIGHT):
                 x, y = imgui.get_mouse_drag_delta(imgui.BUTTON_MOUSE_BUTTON_RIGHT)
                 self.offset = self.offset + Vec2(x, y) * (1 / self.scale)
                 imgui.reset_mouse_drag_delta(imgui.BUTTON_MOUSE_BUTTON_RIGHT)
+
+            bf_part = 0.7
+            cf_part = 1 - bf_part
+            win = self.WIN_SIZE
+
+            imgui.set_next_window_size(*(win * Vec2(bf_part, 1) - 2 * SIZE))
+            imgui.set_next_window_position(*(self.S + Vec2(win.x * cf_part, 0)))
 
             with window("Battlefield", flags=imgui.WINDOW_NO_TITLE_BAR):
                 self.window_pos = Vec2(*imgui.get_window_position())
@@ -273,6 +283,9 @@ class DrawWorld:
 
                 brush.image(self.fromgrid((0, 0)), "snowman_happy")
                 brush.image(self.fromgrid((6, 6)), "snowman_angry")
+                brush.image(self.fromgrid((5, 6)), "santa")
+                brush.image(self.fromgrid((4, 6)), "dirt")
+                brush.image(self.fromgrid((3, 6)), "dirt")
 
                 self.draw_world(brush)
 
@@ -282,7 +295,7 @@ class DrawWorld:
 
                 brush.highlight(
                     self.fromgrid(self.mouse_at),
-                    color=(0.0, 0.0, 0.0, 1),
+                    color=Color.BLACK,
                     thickness=3,
                 )
                 brush.highlight(self.fromgrid(self.mouse_at))
@@ -291,6 +304,7 @@ class DrawWorld:
                     "cursor",
                     offset_percent=Vec2(0.5, 0.5),
                     scale_percent=Vec2(2, 2),
+                    smooth=True,
                 )
 
             with window("Camera Controls"):

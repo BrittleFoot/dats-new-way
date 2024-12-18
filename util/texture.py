@@ -3,7 +3,7 @@ import pygame
 
 
 class Texture:
-    def __init__(self, image_path):
+    def __init__(self, image_path, smooth=False):
         # Load image using pygame
         self.texture_id = gl.glGenTextures(1)
         image = pygame.image.load(image_path).convert_alpha()
@@ -16,10 +16,23 @@ class Texture:
 
         # Bind and configure OpenGL texture
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture_id)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+
+        # Smooth filtering
+
+        gl2d = gl.GL_TEXTURE_2D
+
+        if smooth:
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+        else:
+            # Keep the texture pixelated
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST)
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST)
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+            gl.glTexParameteri(gl2d, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+
         gl.glTexImage2D(
-            gl.GL_TEXTURE_2D,
+            gl2d,
             0,
             gl.GL_RGBA,
             width,
@@ -42,8 +55,8 @@ class Texture:
 textures = {}
 
 
-def get_texture_cached(name) -> Texture:
+def get_texture_cached(name, **kwargs) -> Texture:
     image_path = f"assets/{name}.png"
     if image_path not in textures:
-        textures[image_path] = Texture(image_path)
+        textures[image_path] = Texture(image_path, **kwargs)
     return textures[image_path]
