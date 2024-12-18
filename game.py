@@ -30,8 +30,7 @@ class Game(DrawWorld):
 
     def draw_world(self, brush: Brush):
         for item in self.gameloop.whole_world:
-            point = Vec2(**item)
-            brush.square(self.fromgrid(point), (1, 1, 1, 1))
+            brush.image(self.fromgrid(item), "stone")
 
 
 if __name__ == "__main__":

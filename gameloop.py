@@ -1,8 +1,10 @@
 import threading
+from copy import deepcopy
 from logging import getLogger
 from time import sleep
 
 from client import ApiClient
+from util.itypes import Vec2
 
 api = ApiClient("test")
 
@@ -29,6 +31,15 @@ class Gameloop:
                 turn = info["turn"]
 
                 self.world = world
+
+                # swap due concurrency
+                w = deepcopy(self.whole_world)
+
+                for item in world:
+                    point = Vec2(**item)
+                    w[point] = item
+
+                self.whole_world = w
 
                 self.turn = turn
                 self.next_time = next_time

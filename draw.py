@@ -4,7 +4,7 @@
 from __future__ import absolute_import
 
 import sys
-from collections import defaultdict
+from collections import defaultdict, deque
 from contextlib import contextmanager
 
 import imgui
@@ -49,6 +49,9 @@ HSIZE = SIZE // 2
 
 class Brush:
     def __init__(self, world: "DrawWorld"):
+        """
+        Brush could be created only inside the BattleField window, segfault otherwise
+        """
         self.draw_list = imgui.get_window_draw_list()
         self.x0, self.y0 = imgui.get_window_position()
         self.zero = Vec2(self.x0, self.y0)
@@ -104,11 +107,20 @@ class Brush:
 
 
 key_handlers = defaultdict(list)
+mouse_handlers = defaultdict(list)
 
 
 def key_handler(key, mod=0):
     def decorator(func):
         key_handlers[(key, mod)].append(func)
+        return func
+
+    return decorator
+
+
+def mouse_handler(button):
+    def decorator(func):
+        mouse[button].append(func)
         return func
 
     return decorator
@@ -125,6 +137,8 @@ class DrawWorld:
         self.impl = PygameRenderer()
         self.io = imgui.get_io()
         self.io.display_size = self.WIN_SIZE
+
+        self.handler_queue = deque()
 
         self.running = True
         #
@@ -180,9 +194,21 @@ class DrawWorld:
                 key = (event.key, event.mod)
                 if key in key_handlers:
                     for handler in key_handlers[key]:
-                        handler(self)
+                        self.handler_queue.append((handler, event))
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.zoom_wheel(event)
+
+            # todo: drag handler
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pass
+
+            if event.type == pygame.MOUSEMOTION:
+                pass
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                pass
 
             self.impl.process_event(event)
         self.impl.process_inputs()
@@ -196,19 +222,19 @@ class DrawWorld:
 
     def zoom_wheel(self, event):
         if event.button == pygame.BUTTON_WHEELDOWN:
-            self.zoom_out()
+            self.zoom_out(event)
         if event.button == pygame.BUTTON_WHEELUP:
-            self.zoom_in()
+            self.zoom_in(event)
 
     @key_handler(pygame.K_MINUS)
-    def zoom_out(self):
+    def zoom_out(self, event):
         if self.scale < self.scale_speed * 2:
             return
 
         return self.zoom(-self.scale_speed * self.scale / 2)
 
     @key_handler(pygame.K_EQUALS)
-    def zoom_in(self):
+    def zoom_in(self, event):
         if self.scale >= self.scale_max:
             return
 
@@ -279,6 +305,10 @@ class DrawWorld:
 
                 self.mouse_at = self.togrid(self.get_win_mouse_pos())
 
+                while self.handler_queue:
+                    handler, *args = self.handler_queue.popleft()
+                    handler(self, *args)
+
                 brush = Brush(self)
 
                 brush.image(self.fromgrid((0, 0)), "snowman_happy")
@@ -286,6 +316,7 @@ class DrawWorld:
                 brush.image(self.fromgrid((5, 6)), "santa")
                 brush.image(self.fromgrid((4, 6)), "dirt")
                 brush.image(self.fromgrid((3, 6)), "dirt")
+                brush.image(self.fromgrid((2, 6)), "grinch")
 
                 self.draw_world(brush)
 
@@ -303,7 +334,8 @@ class DrawWorld:
                     self.fromgrid(self.mouse_at),
                     "cursor",
                     offset_percent=Vec2(0.5, 0.5),
-                    scale_percent=Vec2(2, 2),
+                    scale_percent=Vec2(1, 1) * (4 / self.scale),
+                    color=Color.WHITE.but(a=0.8),
                     smooth=True,
                 )
 
