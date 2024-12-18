@@ -1,6 +1,5 @@
 from typing import NamedTuple
 
-import imgui
 import pygame
 
 from draw import Brush, DrawWorld, key_handler

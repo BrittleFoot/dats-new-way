@@ -242,8 +242,7 @@ class DrawWorld:
                 brush.square(self.snap((x, y)), (0.3, 0.4, 0.9, 0.15))
                 brush.image(self.snap((x, y)), **cursor_params)
 
-            with window("Controls"):
-                _, self.scale = imgui.drag_float("Scale", self.scale, 0.1, 0.1, 10)
+            with window("Camera Controls"):
                 if imgui.button("Reset Scale"):
                     self.scale = 2
                 imgui.same_line()
