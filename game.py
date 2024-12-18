@@ -19,7 +19,7 @@ class Game(DrawWorld):
 
     def start(self):
         try:
-            self.main()
+            self.main_loop()
         except KeyboardInterrupt:
             pass
 

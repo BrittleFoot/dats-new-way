@@ -25,6 +25,24 @@ def window(name, **kwargs):
         imgui.end()
 
 
+@contextmanager
+def child(name, **kwargs):
+    imgui.begin_child(name, **kwargs)
+    try:
+        yield
+    finally:
+        imgui.end_child()
+
+
+@contextmanager
+def color(what, color: Color):
+    imgui.push_style_color(what, *color)
+    try:
+        yield
+    finally:
+        imgui.pop_style_color()
+
+
 SIZE = 16
 HSIZE = SIZE // 2
 
@@ -44,6 +62,19 @@ class Brush:
             *(self.zero + a),
             *(self.zero + b),
             imgui.get_color_u32_rgba(*color),
+        )
+
+    def highlight(self, center, color: Color = Color(0.9, 1, 0.3, 0.5), **kwargs):
+        a = center - self.world.size / 2
+        b = center + self.world.size / 2
+        kwargs.setdefault("thickness", 2)
+        kwargs.setdefault("rounding", 3)
+
+        self.draw_list.add_rect(
+            *(self.zero + a),
+            *(self.zero + b),
+            imgui.get_color_u32_rgba(*color),
+            **kwargs,
         )
 
     def image(
@@ -93,6 +124,8 @@ class DrawWorld:
         self.impl = PygameRenderer()
         self.io = imgui.get_io()
         self.io.display_size = self.WIN_SIZE
+
+        self.running = True
         #
         self.init_ui()
         #
@@ -108,6 +141,8 @@ class DrawWorld:
         self.window_size = Vec2(0, 0)
         self.window_mouse_pos = Vec2(0, 0)
 
+        self.mouse_at = Vec2(0, 0)  # mouse grid position
+
     @property
     def vscale(self):
         return Vec2(self.scale, self.scale)
@@ -120,6 +155,10 @@ class DrawWorld:
     def soffset(self):
         """Scaled offset"""
         return self.offset * self.scale
+
+    @property
+    def offset_snap(self):
+        return (self.soffset) % self.size
 
     def get_win_mouse_pos(self):
         mouse = Vec2(*imgui.get_mouse_pos())
@@ -176,30 +215,42 @@ class DrawWorld:
         mouse = self.window_mouse_pos - self.window_pos
         self.offset = self.offset + mouse * (1 / self.scale - 1 / (self.scale - speed))
 
-    def togrid(self, vec):
-        offset_snap = (self.soffset) % self.size
-        centered_vec = Vec2(*vec) + self.size / 2 - offset_snap
-        return centered_vec // self.size
+    @property
+    def offset_grid(self):
+        return self.soffset // self.size
 
-    def snap(self, vec):
-        offset_snap = (self.soffset) % self.size
-        return self.togrid(vec) * self.size + offset_snap
+    def togrid(self, screen_coords):
+        centered_vec = Vec2(*screen_coords) + self.size / 2 - self.offset_snap
+        return centered_vec // self.size - self.offset_grid
 
     def fromgrid(self, grid_coords):
         return Vec2(*grid_coords) * self.size + self.soffset
 
     def status_window(self):
-        imgui.push_style_color(imgui.COLOR_CHILD_BACKGROUND, 0.1, 0.2, 0.1, 0.7)
-        imgui.begin_child("State", border=True, width=180, height=90)
-        imgui.text_ansi(f"Turn: {self.gameloop.turn}")
-        imgui.text_ansi(f"Next: {self.gameloop.next_time:.2f}")
-        imgui.text_ansi(f"Ofst: {self.offset}")
-        imgui.text_ansi(f"Scle: {self.scale:.2f}")
-        imgui.end_child()
-        imgui.pop_style_color()
+        with color(imgui.COLOR_CHILD_BACKGROUND, Color(0.1, 0.2, 0.1, 0.7)):
+            with child("State", border=True, width=180, height=100):
+                imgui.text_disabled("Turn:")
+                imgui.same_line()
+                imgui.text(f"{self.gameloop.turn}")
 
-    def main(self):
-        while 1:
+                imgui.text_disabled("Next:")
+                imgui.same_line()
+                imgui.text(f"{self.gameloop.next_time:.2f}")
+
+                imgui.text_disabled("Ofst:")
+                imgui.same_line()
+                imgui.text(f"{self.offset}")
+
+                imgui.text_disabled("Scle:")
+                imgui.same_line()
+                imgui.text(f"{self.scale:.2f}")
+
+                imgui.text_disabled("Mise:")
+                imgui.same_line()
+                imgui.text(f"{self.mouse_at}")
+
+    def main_loop(self):
+        while self.running:
             self.handle_system_events()
 
             imgui.new_frame()
@@ -211,16 +262,12 @@ class DrawWorld:
                 self.offset = self.offset + Vec2(x, y) * (1 / self.scale)
                 imgui.reset_mouse_drag_delta(imgui.BUTTON_MOUSE_BUTTON_RIGHT)
 
-            flags = (
-                imgui.WINDOW_NO_TITLE_BAR
-                # | imgui.WINDOW_NO_RESIZE
-                # | imgui.WINDOW_NO_MOVE
-            )
-
-            with window("Battlefield", flags=flags):
+            with window("Battlefield", flags=imgui.WINDOW_NO_TITLE_BAR):
                 self.window_pos = Vec2(*imgui.get_window_position())
                 self.window_size = Vec2(*imgui.get_window_size())
                 self.window_mouse_pos = Vec2(*imgui.get_mouse_pos())
+
+                self.mouse_at = self.togrid(self.get_win_mouse_pos())
 
                 brush = Brush(self)
 
@@ -233,14 +280,18 @@ class DrawWorld:
 
                 x, y = self.get_win_mouse_pos()
 
-                cursor_params = {
-                    "name": "cursor",
-                    "offset_percent": Vec2(0.5, 0.5),
-                    "scale_percent": Vec2(2, 2),
-                }
-                brush.image(Vec2(x, y), color=(1, 1, 1, 0.1), **cursor_params)
-                brush.square(self.snap((x, y)), (0.3, 0.4, 0.9, 0.15))
-                brush.image(self.snap((x, y)), **cursor_params)
+                brush.highlight(
+                    self.fromgrid(self.mouse_at),
+                    color=(0.0, 0.0, 0.0, 1),
+                    thickness=3,
+                )
+                brush.highlight(self.fromgrid(self.mouse_at))
+                brush.image(
+                    self.fromgrid(self.mouse_at),
+                    "cursor",
+                    offset_percent=Vec2(0.5, 0.5),
+                    scale_percent=Vec2(2, 2),
+                )
 
             with window("Camera Controls"):
                 if imgui.button("Reset Scale"):
@@ -262,4 +313,4 @@ class DrawWorld:
 
 
 if __name__ == "__main__":
-    DrawWorld().main()
+    DrawWorld().main_loop()
