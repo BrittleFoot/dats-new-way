@@ -36,10 +36,10 @@ class Scribe:
         if not self.enabled:
             if not self.replay.is_file():
                 raise FileNotFoundError(f"Replay file not found: {self.replay}")
-            logger.info("📁 ▶️ Scribe in replay mode")
+            logger.info(f"📁 ▶️ Scribe in replay mode, reading from {self.replay}")
 
         else:
-            logger.info(f"📁 ✍️ Scribe recording {self.replay}")
+            logger.info(f"📁 ✍️ Scribe recording: {self.replay}")
             self.replay.touch()
 
     def dump_world(self, world_supplier):

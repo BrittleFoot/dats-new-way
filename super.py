@@ -103,7 +103,7 @@ def main(replay_file=None):
     if replay_file:
         Super(replay_file=replay_file).start()
     else:
-        Super(game_name="test").start()
+        Super(game_name="t__est1").start()
 
 
 if __name__ == "__main__":
