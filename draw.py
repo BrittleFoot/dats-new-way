@@ -12,6 +12,7 @@ import OpenGL.GL as gl
 import pygame
 from imgui.integrations.pygame import PygameRenderer
 
+from gameloop import Gameloop
 from util.itypes import Color, Vec2
 from util.texture import get_texture_cached
 
@@ -120,13 +121,15 @@ def key_handler(key, mod=0):
 
 def mouse_handler(button):
     def decorator(func):
-        mouse[button].append(func)
+        mouse_handlers[button].append(func)
         return func
 
     return decorator
 
 
 class DrawWorld:
+    gameloop: Gameloop
+
     def __init__(self):
         pygame.init()
         self.WIN_SIZE = Vec2(1344, 768)
@@ -262,11 +265,11 @@ class DrawWorld:
             with child("State", border=True, width=180, height=100):
                 imgui.text_disabled("Turn:")
                 imgui.same_line()
-                imgui.text(f"{self.gameloop.turn}")
+                imgui.text(f"{self.gameloop.world.turn}")
 
                 imgui.text_disabled("Next:")
                 imgui.same_line()
-                imgui.text(f"{self.gameloop.next_time:.2f}")
+                imgui.text(f"{self.gameloop.world.timeout:.2f}")
 
                 imgui.text_disabled("Ofst:")
                 imgui.same_line()
@@ -281,7 +284,7 @@ class DrawWorld:
                 imgui.text(f"{self.mouse_at}")
 
     def main_loop(self):
-        while self.running:
+        while self.running and self.gameloop.running:
             self.handle_system_events()
 
             imgui.new_frame()
@@ -345,6 +348,8 @@ class DrawWorld:
                 imgui.same_line()
                 if imgui.button("Reset Offset"):
                     self.offset = Vec2(0, 0)
+
+            self.draw_ui()
 
             ###############################
             self.clear_render()

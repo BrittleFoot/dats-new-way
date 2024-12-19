@@ -169,3 +169,5 @@ data/replays/*
 !data/replays/README.md
 
 .DS_Store
+
+t__*

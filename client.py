@@ -17,7 +17,7 @@ KEY = environ["DAD_TOKEN"]
 
 basicConfig(
     level="INFO",
-    format="[%(name)s][%(levelname)s] %(message)s",
+    format="[%(levelname)s][%(name)s] %(message)s",
 )
 
 

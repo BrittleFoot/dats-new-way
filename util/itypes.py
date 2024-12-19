@@ -155,3 +155,7 @@ Color.GOLD = Color(1, 0.84, 0, 1)
 Color.BRONZE = Color(0.8, 0.5, 0.2, 1)
 Color.COPPER = Color(0.72, 0.45, 0.2, 1)
 Color.PLATINUM = Color(0.9, 0.9, 0.9, 1)
+
+
+def clump(minimum, value, maximum):
+    return max(minimum, min(value, maximum))
