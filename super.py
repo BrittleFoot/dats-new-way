@@ -76,6 +76,7 @@ class Super(DrawWorld):
         if not self.snake:
             return
 
+        print("Moving up")
         self.gameloop.add_command(self.snake.move_command(Vec3d(0, -1, 0)))
 
     @key_handler(pygame.K_s)
@@ -83,6 +84,7 @@ class Super(DrawWorld):
         if not self.snake:
             return
 
+        print("Moving down")
         self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
 
     @key_handler(pygame.K_a)
@@ -90,6 +92,7 @@ class Super(DrawWorld):
         if not self.snake:
             return
 
+        print("Moving left")
         self.gameloop.add_command(self.snake.move_command(Vec3d(-1, 0, 0)))
 
     @key_handler(pygame.K_d)
@@ -97,6 +100,7 @@ class Super(DrawWorld):
         if not self.snake:
             return
 
+        print("Moving right")
         self.gameloop.add_command(self.snake.move_command(Vec3d(1, 0, 0)))
 
     def draw_world(self):
@@ -113,6 +117,9 @@ class Super(DrawWorld):
         hide = lambda z: self.config.fade if z != cz else 1
 
         for snake in world.snakes:
+            if not snake.geometry:
+                continue
+
             v, z = snake.head.t2()
 
             if self.snake and snake.id == self.snake.id:
@@ -127,6 +134,9 @@ class Super(DrawWorld):
                 brush.square(self.fromgrid(v), Color.YELLOW.but(a=hide(z)))
 
         for enemy in world.enemies:
+            if not enemy.geometry:
+                continue
+
             v, z = enemy.head.t2()
             brush.square(self.fromgrid(v), Color.RED.but(a=hide(z)))
             for point in enemy.body:
