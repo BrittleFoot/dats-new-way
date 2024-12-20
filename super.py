@@ -9,9 +9,9 @@ from fire import Fire
 from client import ApiClient
 from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
-from gt import Map, parse_map
+from gt import Map, Vec3d, parse_map
 from util.brush import PixelBrush
-from util.itypes import Vec2
+from util.itypes import Color, Vec2
 
 basicConfig(
     level="INFO",
@@ -28,6 +28,8 @@ class Point(NamedTuple):
 class Config:
     timepoint = 0
     realtime = True
+
+    current_z = 0
 
 
 class Super(DrawWorld):
@@ -47,6 +49,8 @@ class Super(DrawWorld):
 
         self.wb = self.gameloop.world_builder
         self.config = Config()
+
+        self.head: Vec3d = None
 
     def start(self):
         try:
@@ -69,6 +73,29 @@ class Super(DrawWorld):
         brush = PixelBrush(self)
         world = self.get_world_to_draw()
 
+        xy, z = world.size.t2()
+        cz = self.config.current_z
+
+        for snake in world.snakes:
+            head, *tail = snake.geometry
+            self.head = head
+
+            v, z = head.t2()
+
+            brush.square(self.fromgrid(v), Color.GOLD)
+            for point in tail:
+                v, z = point.t2()
+                brush.square(self.fromgrid(v), Color.YELLOW)
+
+        for enemy in world.enemies:
+            head, *tail = enemy.geometry
+
+            v, z = head.t2()
+            brush.square(self.fromgrid(v), Color.RED)
+            for point in tail:
+                v, z = point.t2()
+                brush.square(self.fromgrid(v), Color.RED)
+
     ###################################
     #####
 
@@ -82,6 +109,8 @@ class Super(DrawWorld):
 
     def draw_ui(self):
         self.imgui_keybindings()
+
+        w = self.get_world_to_draw()
 
         C = self.config
         timelen = len(self.wb.history) - 1
@@ -101,6 +130,13 @@ class Super(DrawWorld):
                     C.realtime = True
 
             _, C.realtime = imgui.checkbox("Realtime", C.realtime)
+
+            _, C.current_z = imgui.slider_float(
+                "Z",
+                C.current_z,
+                min_value=0,
+                max_value=w.size.z,
+            )
 
     def imgui_keybindings(self):
         C = self.config

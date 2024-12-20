@@ -237,11 +237,6 @@ class DrawWorld:
                 pix = PixelBrush(self)
 
                 pix.image(self.fromgrid((0, 0)), "snowman_happy")
-                pix.image(self.fromgrid((6, 6)), "snowman_angry")
-                pix.image(self.fromgrid((5, 6)), "santa")
-                pix.image(self.fromgrid((4, 6)), "dirt")
-                pix.image(self.fromgrid((3, 6)), "dirt")
-                pix.image(self.fromgrid((2, 6)), "grinch")
 
                 self.draw_world()
 

@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pprint import pprint
 from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
+from util.itypes import Vec2
+
 
 class Vec3d(NamedTuple):
     x: int
@@ -10,6 +12,12 @@ class Vec3d(NamedTuple):
 
     def manh(self, other: "Vec3d") -> int:
         return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
+
+    def to2(self):
+        return Vec2(self.x, self.y)
+
+    def t2(self):
+        return Vec2(self.x, self.y), self.z
 
 
 @dataclass
@@ -74,7 +82,7 @@ def parse_snake(data: Dict[str, Any]) -> Snake:
 
 def parse_enemy_snake(data: Dict[str, Any]) -> EnemySnake:
     return EnemySnake(
-        geometry=[tuple(coord) for coord in data["geometry"]],
+        geometry=[Vec3d(*coord) for coord in data["geometry"]],
         status=data["status"],
         kills=data["kills"],
     )
