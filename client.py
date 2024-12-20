@@ -56,6 +56,12 @@ class ApiClient:
         :return: response.json()
         """
         try:
+            kwargs.setdefault(
+                "headers",
+                {
+                    "Accept-Encoding": "gzip, deflate",
+                },
+            )
             response = self._client.request(method, url, **kwargs)
         except Exception as e:
             self.logger.error(f"request error: {e}")
@@ -110,21 +116,21 @@ class ApiClient:
     ######################################
 
     def rounds(self):
-        rounds = self.get("rounds/newway/")
+        rounds = self.get("rounds/snake3d/")
         # rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
         return rounds
 
     def world(self):
-        return self.get("play/newway/world/")
+        return self.get("play/snake3d/world/")
 
     def units(self):
-        return self.get("play/newway/units/")
+        return self.get("play/snake3d/units/")
 
     def participate(self):
-        return self.put("play/newway/participate/")
+        return self.put("play/snake3d/participate/")
 
     def command(self, commands):
-        return self.post("play/newway/command", json=commands)
+        return self.post("play/snake3d/command", json=commands)
 
     def test_world(self):
         return self.get("http://localhost:8000/")
