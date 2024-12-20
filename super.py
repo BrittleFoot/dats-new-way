@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from logging import basicConfig
+from os import environ
 from typing import NamedTuple
 
 import imgui
@@ -183,7 +184,7 @@ def main(replay_file=None):
         Super(replay_file=replay_file).start()
     else:
         m = parse_map(ApiClient("test").world())
-        sup = Super(game_name="zero", init=m)
+        sup = Super(game_name="zero-" + environ["USER"], init=m)
         sup.start()
 
 
