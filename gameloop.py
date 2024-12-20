@@ -1,11 +1,9 @@
 import threading
-from copy import deepcopy
-from dataclasses import dataclass
 from logging import getLogger
 from time import sleep
 
 from client import ApiClient
-from util.itypes import Vec2
+from gt import Map, parse_map
 from util.scribe import Scribe
 
 api = ApiClient("test")
@@ -13,24 +11,17 @@ api = ApiClient("test")
 logger = getLogger(__name__)
 
 
-@dataclass
-class World:
-    turn: int
-    timeout: int
-    map: dict
-
-
 class WorldBuild:
-    def __init__(self, scribe: Scribe, replay: bool):
+    def __init__(self, scribe: Scribe, replay: bool, init: Map):
         self.replay = replay
         self.scribe = scribe
 
         if replay:
             self.replay_data = scribe.replay_iterator()
 
-        self.world = World(0, 0, {})
+        self.world = init
 
-        self.history = [self.world]
+        self.history: list[Map] = [init]
 
     def pull_world(self):
         if self.replay:
@@ -40,17 +31,19 @@ class WorldBuild:
 
     def _pull_replay(self):
         try:
-            return next(self.replay_data)
+            data = next(self.replay_data)
+            return parse_map(data)
         except StopIteration:
             return None
 
     def _pull_api(self):
         try:
-            data = api.test_world()
-
+            data = api.world({})
             self.scribe.dump_world(lambda: data)
 
-            return data
+            mp = parse_map(data)
+
+            return mp
 
         except Exception as e:
             logger.error("Error pulling world", exc_info=e)
@@ -65,30 +58,25 @@ class WorldBuild:
         if not world:
             return self.get_latest_world()
 
-        turn = world["turn"]
-        timeout = world["turnEndsInSec"]
-        map = world["map"]
-
         current = self.history[-1]
-        seen_now = World(turn, timeout, map)
-        combined = self.merge_world(current, seen_now)
+        combined = self.merge_world(current, world)
 
         self.history.append(combined)
 
         return combined, len(self.history)
 
-    def merge_world(self, glob: World, local: World):
-        m = deepcopy(glob.map)
+    def merge_world(self, glob: Map, local: Map):
+        # m = deepcopy(glob.map)
 
-        for item in local.map:
-            point = Vec2(**item)
-            m[point] = item
+        # for item in local.map:
+        #     point = Vec2(**item)
+        #     m[point] = item
 
-        return World(local.turn, local.timeout, m)
+        return local
 
 
 class Gameloop:
-    def __init__(self, replay_file=None, game_name=None):
+    def __init__(self, init: Map, replay_file=None, game_name=None):
         if not replay_file and not game_name:
             raise ValueError("Either `replay_file` or `game_name` must be provided")
 
@@ -103,7 +91,7 @@ class Gameloop:
             self.replay = True
             self.scribe = Scribe(replay_file, enabled=False)
 
-        self.world_builder = WorldBuild(self.scribe, self.replay)
+        self.world_builder = WorldBuild(self.scribe, self.replay, init)
         self.world, self.history_point = self.world_builder.get_latest_world()
 
     def loop(self):

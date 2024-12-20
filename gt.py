@@ -8,6 +8,9 @@ class Vec3d(NamedTuple):
     y: int
     z: int
 
+    def manh(self, other: "Vec3d") -> int:
+        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
+
 
 @dataclass
 class Snake:
@@ -18,6 +21,9 @@ class Snake:
     death_count: int
     status: Literal["alive", "dead"]
     revive_remain_ms: Optional[int] = None
+
+    def move_command(self, direction: Vec3d):
+        return {"id": self.id, "direction": list(direction)}
 
 
 @dataclass
@@ -108,6 +114,14 @@ def parse_map(data: Dict[str, Any]) -> Map:
         snakes=[parse_snake(snake) for snake in data["snakes"]],
         enemies=[parse_enemy_snake(enemy) for enemy in data["enemies"]],
     )
+
+
+def command():
+    return {
+        "snakes": [
+            {"id": "6c1dfac6d106e6f4d0ffdddb665238253574ac1f", "direction": [0, 0, 0]}
+        ]
+    }
 
 
 if __name__ == "__main__":

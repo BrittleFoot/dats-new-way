@@ -6,8 +6,10 @@ import imgui
 import pygame
 from fire import Fire
 
+from client import ApiClient
 from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
+from gt import Map, parse_map
 from util.brush import BrushyBrush, PixelBrush
 from util.itypes import Vec2
 
@@ -29,12 +31,18 @@ class Config:
 
 
 class Super(DrawWorld):
-    def __init__(self, game_name=None, replay_file=None):
+    def __init__(
+        self,
+        init: Map,
+        game_name=None,
+        replay_file=None,
+    ):
         super().__init__()
 
         self.gameloop = Gameloop(
             replay_file=replay_file,
             game_name=game_name,
+            init=init,
         ).launch_async()
 
         self.wb = self.gameloop.world_builder
@@ -144,7 +152,9 @@ def main(replay_file=None):
     if replay_file:
         Super(replay_file=replay_file).start()
     else:
-        Super(game_name="t__").start()
+        m = parse_map(ApiClient("test").world())
+        sup = Super(game_name="zero", init=m)
+        sup.start()
 
 
 if __name__ == "__main__":

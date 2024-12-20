@@ -41,9 +41,9 @@ class ApiClient:
         self.logger = getLogger(logger_name)
 
         self._client = httpx.Client(
-            auth=DadAuth(KEY),
+            # auth=DadAuth(KEY),
             http1=True,
-            http2=True,
+            http2=False,
             base_url=self.base,
         )
 
@@ -59,7 +59,8 @@ class ApiClient:
             kwargs.setdefault(
                 "headers",
                 {
-                    "Accept-Encoding": "gzip, deflate",
+                    # "Accept-Encoding": "gzip, deflate",
+                    "X-Auth-Token": KEY,
                 },
             )
             response = self._client.request(method, url, **kwargs)
@@ -71,6 +72,7 @@ class ApiClient:
 
         if response.status_code >= 300:
             self.logger.error(f"request error: {response.status_code}", exc_info=True)
+            self.logger.info(response.request.headers)
             raise Exception(response.json())
 
         return response.json()
@@ -120,23 +122,10 @@ class ApiClient:
         # rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
         return rounds
 
-    def world(self):
-        return self.get("play/snake3d/world/")
-
-    def units(self):
-        return self.get("play/snake3d/units/")
-
-    def participate(self):
-        return self.put("play/snake3d/participate/")
-
-    def command(self, commands):
-        return self.post("play/snake3d/command", json=commands)
-
-    def test_world(self):
-        return self.get("http://localhost:8000/")
-
-    def test_submit(self, commands):
-        return self.get("submit", json=commands)
+    def world(self, commands=None):
+        if commands is None:
+            commands = {"snakes": []}
+        return self.post("play/snake3d/player/move", json=commands)
 
 
 if __name__ == "__main__":
