@@ -106,7 +106,7 @@ class Gameloop:
                 self.history_point = history_point
 
                 if not self.replay:
-                    sleep(self.world.timeout)
+                    sleep(self.world.tick_remain_ms / 1000)
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)

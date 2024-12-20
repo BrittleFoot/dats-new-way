@@ -183,8 +183,21 @@ def main(replay_file=None):
     if replay_file:
         Super(replay_file=replay_file).start()
     else:
+        rounds = ApiClient("test").rounds()
+
+        actives = [r for r in rounds["rounds"] if r["status"] == "active"]
+
+        if len(actives) == 0:
+            print("No active games")
+            return
+
+        active = actives[0]
+
+        name = active["name"]
+        print(f"🚀 Playing round: {name}")
+
         m = parse_map(ApiClient("test").world())
-        sup = Super(game_name="zero-" + environ["USER"], init=m)
+        sup = Super(game_name=f"{name}-" + environ["USER"], init=m)
         sup.start()
 
 
