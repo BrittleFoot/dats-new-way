@@ -9,7 +9,6 @@ from fire import Fire
 from draw import Brush, DrawWorld, key_handler, window
 from gameloop import Gameloop
 from util.itypes import Vec2
-from util.scribe import NOSCRIBE
 
 basicConfig(
     level="INFO",
@@ -130,7 +129,7 @@ def main(replay_file=None):
     if replay_file:
         Super(replay_file=replay_file).start()
     else:
-        Super(game_name=NOSCRIBE).start()
+        Super(game_name="t__").start()
 
 
 if __name__ == "__main__":

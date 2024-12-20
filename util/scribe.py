@@ -7,9 +7,6 @@ from fire import Fire
 logger = getLogger(__name__)
 
 
-NOSCRIBE = "-null-"
-
-
 class Scribe:
     """
     Dump server world state to a file.
