@@ -4,11 +4,10 @@ from os import environ
 from typing import NamedTuple
 
 import imgui
-import pygame
 from fire import Fire
 
 from client import ApiClient
-from draw import DrawWorld, key_handler, window
+from draw import DrawWorld, window
 from gameloop import Gameloop
 from gt import Map, Snake, Vec3d, parse_map
 from util.brush import PixelBrush
@@ -63,15 +62,6 @@ class Super(DrawWorld):
             self.gameloop.running = False
             self.running = False
 
-    @key_handler(pygame.K_SPACE)
-    def reset_camera(self, _):
-        self.offset = Vec2(0, 0)
-        if self.snake:
-            self.offset = (
-                -self.snake.head.to2() * self.S + self.window_size / 2 / self.scale
-            )
-        # self.scale = 2
-
     #####
     ###################################
 
@@ -87,6 +77,11 @@ class Super(DrawWorld):
         cz = self.config.current_z
 
         hide = lambda z: self.config.fade if z != cz else 1
+
+        for path in self.gameloop.paths:
+            for point in path.path:
+                v, z = point.t2()
+                brush.square(self.fromgrid(v), Color.BLUE.but(a=hide(z)))
 
         for snake in world.snakes:
             if not snake.geometry:
@@ -175,7 +170,7 @@ class Super(DrawWorld):
                 imgui.text(f"Status: {snake.status}")
                 imgui.text(f"Head: {snake.head}")
 
-                if imgui.button(f"Focus #{snake.id}"):
+                if imgui.button(f"Focus##{snake.id}"):
                     self.snake = snake
 
                 imgui.separator()
@@ -211,6 +206,12 @@ class Super(DrawWorld):
 
             if imgui.is_key_pressed(imgui.KEY_DOWN_ARROW, repeat=False):
                 self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
+
+            if imgui.is_key_pressed(imgui.KEY_SPACE, repeat=False):
+                self.offset = Vec2(0, 0)
+                self.offset = (
+                    -self.snake.head.to2() * self.S + self.window_size / 2 / self.scale
+                )
 
     def status_window(self):
         imgui.text_disabled("Turn:")

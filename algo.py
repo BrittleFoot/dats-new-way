@@ -1,20 +1,7 @@
 import heapq
 from typing import Dict, List, Optional
 
-from gt import Vec3d
-
-
-def is_obstacle(v: Vec3d, fences, enemies):
-    # Example: consider fences and enemies as obstacles.
-    # This is a simple check. You may need to adapt it depending on your data structures.
-    if v in fences:
-        return True
-    # Similarly check enemies:
-    # If the coordinates occupied by enemies are blocked:
-    enemy_positions = [seg for e in enemies for seg in e.geometry]
-    if v in enemy_positions:
-        return True
-    return False
+from gt import Food, Map, Snake, Vec3d
 
 
 def in_bounds(v: Vec3d, SIZE):
@@ -24,11 +11,11 @@ def in_bounds(v: Vec3d, SIZE):
 
 def a_star(start: Vec3d, goal: Vec3d, SIZE: Vec3d, fences: List[Vec3d], enemies: List):
     # Convert lists to sets for quick lookups
-    fence_set = set(fences)
+    fence_set = set(fences) - {start, goal}
 
     # For simplicity, assume enemies is a list of EnemySnake objects, each with geometry as a list of Vec3d
     # Flatten enemy positions into a set
-    enemy_positions = {seg for e in enemies for seg in e.geometry}
+    enemy_positions = {seg for e in enemies for seg in e.geometry} - {start, goal}
 
     # Priority queue for frontier
     # Each entry: (f_cost, g_cost, current_position)
@@ -67,27 +54,29 @@ def a_star(start: Vec3d, goal: Vec3d, SIZE: Vec3d, fences: List[Vec3d], enemies:
     return None
 
 
-# Example usage:
-if __name__ == "__main__":
-    SIZE = Vec3d(200, 200, 20)  # just an example size
-    fences = [Vec3d(x=152, y=51, z=10)]  # Example fence
+def find_path(map: Map, start: Vec3d, goal: Vec3d):
+    # Example usage:
+    SIZE = map.size
+    fences = map.fences
+    enemies = map.snakes + map.enemies
 
-    # Example enemy with single segment
-    class EnemySnake:
-        def __init__(self, geometry, status, kills):
-            self.geometry = geometry
-            self.status = status
-            self.kills = kills
+    return a_star(start, goal, SIZE, fences, enemies)
 
-    enemies = [EnemySnake(geometry=[Vec3d(152, 51, 10)], status="alive", kills=0)]
 
-    start = Vec3d(5, 5, 5)
-    goal = Vec3d(8, 8, 8)
+def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:
+    """
+    Returns a list of all food (normal, golden, suspicious) sorted
+    by their distance to the given snake’s head.
+    """
+    # Snake’s head position
+    if not snake.geometry:
+        return []
 
-    path = a_star(start, goal, SIZE, fences, enemies)
-    if path:
-        print("Path found!")
-        for p in path:
-            print(p.x, p.y, p.z)
-    else:
-        print("No path found.")
+    snake_head = snake.geometry[0]
+
+    # Combine all types of food into a single list if desired
+    all_food = game_map.food + game_map.golden + game_map.sus
+
+    # Sort by distance, using the manhattan distance defined in Vec3d
+    sorted_food = sorted(all_food, key=lambda f: snake_head.manh(f.coordinate))
+    return sorted_food
