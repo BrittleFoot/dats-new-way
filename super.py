@@ -9,6 +9,7 @@ from fire import Fire
 from draw import Brush, DrawWorld, key_handler, window
 from gameloop import Gameloop
 from util.itypes import Vec2
+from util.scribe import NOSCRIBE
 
 basicConfig(
     level="INFO",
@@ -53,20 +54,6 @@ class Super(DrawWorld):
         self.offset = Vec2(0, 0)
         self.scale = 2
 
-    @key_handler(pygame.K_LEFT)
-    def time_left(self, _):
-        self.config.realtime = False
-        self.config.timepoint = max(0, self.config.timepoint - 1)
-
-    @key_handler(pygame.K_RIGHT)
-    def time_right(self, _):
-        self.config.realtime = False
-        self.config.timepoint = min(self.config.timepoint + 1, len(self.wb.history) - 1)
-
-    @key_handler(pygame.K_UP)
-    def time_realtime(self, _):
-        self.config.realtime = True
-
     def draw_world(self, brush: Brush):
         world = self.get_world_to_draw()
 
@@ -82,28 +69,68 @@ class Super(DrawWorld):
         return self.wb.history[self.config.timepoint]
 
     def draw_ui(self):
-        c = self.config
+        self.imgui_keybindings()
 
-        timelen = len(self.wb.history)
+        C = self.config
+        timelen = len(self.wb.history) - 1
 
         with window("Sacred Timeline"):
-            changed, c.timepoint = imgui.slider_int(
+            changed, C.timepoint = imgui.slider_int(
                 "Timepoint",
-                c.timepoint,
+                C.timepoint,
                 min_value=0,
-                max_value=timelen - 1,
+                max_value=timelen,
             )
 
             if changed:
-                c.realtime = False
-            _, c.realtime = imgui.checkbox("Realtime", c.realtime)
+                C.realtime = False
+
+                if C.timepoint == timelen:
+                    C.realtime = True
+
+            _, C.realtime = imgui.checkbox("Realtime", C.realtime)
+
+    def imgui_keybindings(self):
+        C = self.config
+
+        if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=True):
+            C.realtime = False
+            C.timepoint = max(0, C.timepoint - 1)
+
+        if imgui.is_key_pressed(imgui.KEY_RIGHT_ARROW, repeat=True):
+            C.realtime = False
+            C.timepoint = min(C.timepoint + 1, len(self.wb.history) - 1)
+            if C.timepoint == len(self.wb.history) - 1:
+                C.realtime = True
+
+        if imgui.is_key_pressed(imgui.KEY_UP_ARROW, repeat=True):
+            C.realtime = True
+
+    def status_window(self):
+        imgui.text_disabled("Turn:")
+        imgui.same_line()
+        imgui.text(f"{self.config.timepoint}")
+        imgui.same_line()
+        imgui.text_disabled(f"out of {len(self.wb.history) - 1}")
+
+        imgui.text_disabled("Ofst:")
+        imgui.same_line()
+        imgui.text(f"{self.offset}")
+
+        imgui.text_disabled("Scle:")
+        imgui.same_line()
+        imgui.text(f"{self.scale:.2f}")
+
+        imgui.text_disabled("Mise:")
+        imgui.same_line()
+        imgui.text(f"{self.mouse_at}")
 
 
 def main(replay_file=None):
     if replay_file:
         Super(replay_file=replay_file).start()
     else:
-        Super(game_name="t__est1").start()
+        Super(game_name=NOSCRIBE).start()
 
 
 if __name__ == "__main__":

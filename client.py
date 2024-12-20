@@ -1,4 +1,3 @@
-import json
 from functools import wraps
 from logging import basicConfig, getLogger
 from os import environ
@@ -6,10 +5,11 @@ from typing import Literal
 
 import httpx
 from dotenv import load_dotenv
+from fire import Fire
 
 load_dotenv()
 
-TEST = "http://localhost:8000/"
+TEST = "https://games-test.datsteam.dev/"
 PROD = "https://games.datsteam.dev/"
 
 KEY = environ["DAD_TOKEN"]
@@ -20,6 +20,8 @@ basicConfig(
     format="[%(levelname)s][%(name)s] %(message)s",
 )
 
+getLogger("httpx").setLevel("ERROR")
+
 
 class DadAuth(httpx.Auth):
     def __init__(self, token):
@@ -29,9 +31,6 @@ class DadAuth(httpx.Auth):
         # Send the request, with a custom `X-Authentication` header.
         request.headers["X-Auth-Token"] = self.token
         yield request
-
-
-getLogger("httpx").setLevel("ERROR")
 
 
 class ApiClient:
@@ -65,7 +64,8 @@ class ApiClient:
         self.logger.debug(f"{response.status_code} {method} /{url} ")
 
         if response.status_code >= 300:
-            raise Exception(json.dumps(response.json(), indent=2))
+            self.logger.error(f"request error: {response.status_code}", exc_info=True)
+            raise Exception(response.json())
 
         return response.json()
 
@@ -110,28 +110,28 @@ class ApiClient:
     ######################################
 
     def rounds(self):
-        rounds = self.get("rounds/zombidef")
-        rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
+        rounds = self.get("rounds/newway/")
+        # rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
         return rounds
 
     def world(self):
-        return self.get("play/zombidef/world")
+        return self.get("play/newway/world/")
 
     def units(self):
-        return self.get("play/zombidef/units")
+        return self.get("play/newway/units/")
 
     def participate(self):
-        return self.put("play/zombidef/participate")
+        return self.put("play/newway/participate/")
 
     def command(self, commands):
-        return self.post("play/zombidef/command", json=commands)
+        return self.post("play/newway/command", json=commands)
 
     def test_world(self):
-        return self.get("")
+        return self.get("http://localhost:8000/")
 
     def test_submit(self, commands):
         return self.get("submit", json=commands)
 
 
-api_test = ApiClient("test")
-api_prod = ApiClient("prod")
+if __name__ == "__main__":
+    Fire(ApiClient("test"))

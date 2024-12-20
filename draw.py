@@ -260,29 +260,6 @@ class DrawWorld:
     def fromgrid(self, grid_coords):
         return Vec2(*grid_coords) * self.size + self.soffset
 
-    def status_window(self):
-        with color(imgui.COLOR_CHILD_BACKGROUND, Color(0.1, 0.2, 0.1, 0.7)):
-            with child("State", border=True, width=180, height=100):
-                imgui.text_disabled("Turn:")
-                imgui.same_line()
-                imgui.text(f"{self.gameloop.world.turn}")
-
-                imgui.text_disabled("Next:")
-                imgui.same_line()
-                imgui.text(f"{self.gameloop.world.timeout:.2f}")
-
-                imgui.text_disabled("Ofst:")
-                imgui.same_line()
-                imgui.text(f"{self.offset}")
-
-                imgui.text_disabled("Scle:")
-                imgui.same_line()
-                imgui.text(f"{self.scale:.2f}")
-
-                imgui.text_disabled("Mise:")
-                imgui.same_line()
-                imgui.text(f"{self.mouse_at}")
-
     def main_loop(self):
         while self.running and self.gameloop.running:
             self.handle_system_events()
@@ -323,7 +300,7 @@ class DrawWorld:
 
                 self.draw_world(brush)
 
-                self.status_window()
+                self._status_window()
 
                 x, y = self.get_win_mouse_pos()
 
@@ -353,6 +330,15 @@ class DrawWorld:
 
             ###############################
             self.clear_render()
+
+    def _status_window(self):
+        with color(imgui.COLOR_CHILD_BACKGROUND, Color(0.1, 0.2, 0.1, 0.7)):
+            with child("State", border=True, width=180, height=100):
+                self.status_window()
+
+    def status_window(self):
+        """Override this method to draw the status window"""
+        pass
 
     def draw_world(self, brush: Brush):
         """Override this method to draw the world"""
