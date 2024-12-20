@@ -141,8 +141,9 @@ class Gameloop:
                     self.commands
                 )
 
+                print(self.history_point)
                 if history_point <= self.history_point:
-                    sleep(0.1)
+                    sleep(0.5)
 
                 self.history_point = history_point
 

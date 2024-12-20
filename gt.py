@@ -172,14 +172,6 @@ def parse_map(data: Dict[str, Any]) -> Map:
     )
 
 
-def command():
-    return {
-        "snakes": [
-            {"id": "6c1dfac6d106e6f4d0ffdddb665238253574ac1f", "direction": [0, 0, 0]}
-        ]
-    }
-
-
 if __name__ == "__main__":
     example = {
         "mapSize": [180, 180, 30],
