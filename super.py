@@ -71,38 +71,6 @@ class Super(DrawWorld):
     #####
     ###################################
 
-    @key_handler(pygame.K_w)
-    def move_up(self, _):
-        if not self.snake:
-            return
-
-        print("Moving up")
-        self.gameloop.add_command(self.snake.move_command(Vec3d(0, -1, 0)))
-
-    @key_handler(pygame.K_s)
-    def move_down(self, _):
-        if not self.snake:
-            return
-
-        print("Moving down")
-        self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
-
-    @key_handler(pygame.K_a)
-    def move_left(self, _):
-        if not self.snake:
-            return
-
-        print("Moving left")
-        self.gameloop.add_command(self.snake.move_command(Vec3d(-1, 0, 0)))
-
-    @key_handler(pygame.K_d)
-    def move_right(self, _):
-        if not self.snake:
-            return
-
-        print("Moving right")
-        self.gameloop.add_command(self.snake.move_command(Vec3d(1, 0, 0)))
-
     def draw_world(self):
         brush = PixelBrush(self)
         world = self.get_world_to_draw()
@@ -228,18 +196,18 @@ class Super(DrawWorld):
     def imgui_keybindings(self):
         C = self.config
 
-        if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=True):
-            C.realtime = False
-            C.timepoint = max(0, C.timepoint - 1)
+        if self.snake:
+            if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=False):
+                self.gameloop.add_command(self.snake.move_command(Vec3d(-1, 0, 0)))
 
-        if imgui.is_key_pressed(imgui.KEY_RIGHT_ARROW, repeat=True):
-            C.realtime = False
-            C.timepoint = min(C.timepoint + 1, len(self.wb.history) - 1)
-            if C.timepoint == len(self.wb.history) - 1:
-                C.realtime = True
+            if imgui.is_key_pressed(imgui.KEY_RIGHT_ARROW, repeat=False):
+                self.gameloop.add_command(self.snake.move_command(Vec3d(1, 0, 0)))
 
-        if imgui.is_key_pressed(imgui.KEY_UP_ARROW, repeat=True):
-            C.realtime = True
+            if imgui.is_key_pressed(imgui.KEY_UP_ARROW, repeat=False):
+                self.gameloop.add_command(self.snake.move_command(Vec3d(0, -1, 0)))
+
+            if imgui.is_key_pressed(imgui.KEY_DOWN_ARROW, repeat=False):
+                self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
 
     def status_window(self):
         imgui.text_disabled("Turn:")
