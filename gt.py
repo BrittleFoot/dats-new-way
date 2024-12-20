@@ -19,6 +19,26 @@ class Vec3d(NamedTuple):
     def t2(self):
         return Vec2(self.x, self.y), self.z
 
+    def __add__(self, other: "Vec3d") -> "Vec3d":
+        return Vec3d(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def manh(self, other: "Vec3d") -> int:
+        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
+
+    def neighbors(self):
+        # Orthogonal moves: up/down/left/right/forward/back in 3D
+        # You can add more if diagonals or other moves are allowed.
+        directions = [
+            Vec3d(1, 0, 0),
+            Vec3d(-1, 0, 0),
+            Vec3d(0, 1, 0),
+            Vec3d(0, -1, 0),
+            Vec3d(0, 0, 1),
+            Vec3d(0, 0, -1),
+        ]
+        for d in directions:
+            yield self + d
+
 
 @dataclass
 class Snake:
