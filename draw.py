@@ -13,8 +13,8 @@ import pygame
 from imgui.integrations.pygame import PygameRenderer
 
 from gameloop import Gameloop
+from util.brush import PixelBrush
 from util.itypes import Color, Vec2
-from util.texture import get_texture_cached
 
 
 @contextmanager
@@ -46,65 +46,6 @@ def color(what, color: Color):
 
 SIZE = 16
 HSIZE = SIZE // 2
-
-
-class Brush:
-    def __init__(self, world: "DrawWorld"):
-        """
-        Brush could be created only inside the BattleField window, segfault otherwise
-        """
-        self.draw_list = imgui.get_window_draw_list()
-        self.x0, self.y0 = imgui.get_window_position()
-        self.zero = Vec2(self.x0, self.y0)
-        self.world = world
-
-    def square(self, center, color: Color = Color(1, 1, 1, 0.8)):
-        a = center - self.world.size / 2
-        b = center + self.world.size / 2
-
-        self.draw_list.add_rect_filled(
-            *(self.zero + a),
-            *(self.zero + b),
-            imgui.get_color_u32_rgba(*color),
-        )
-
-    def highlight(self, center, color: Color = Color(0.9, 1, 0.3, 0.5), **kwargs):
-        a = center - self.world.size / 2
-        b = center + self.world.size / 2
-        kwargs.setdefault("thickness", 2)
-        kwargs.setdefault("rounding", 3)
-
-        self.draw_list.add_rect(
-            *(self.zero + a),
-            *(self.zero + b),
-            imgui.get_color_u32_rgba(*color),
-            **kwargs,
-        )
-
-    def image(
-        self,
-        center,
-        name,
-        color: Color = Color(1, 1, 1, 1),
-        offset_percent=Vec2(0, 0),
-        scale_percent=Vec2(1, 1),
-        **kwargs,
-    ):
-        size = scale_percent * self.world.size
-        a = Vec2(*center) - size / 2 + offset_percent * size
-        b = Vec2(*center) + size / 2 + offset_percent * size
-
-        texture = get_texture_cached(name, **kwargs)
-
-        start = self.zero + a
-        end = self.zero + b
-
-        self.draw_list.add_image(
-            texture.texture_id,
-            tuple(start),
-            tuple(end),
-            col=imgui.get_color_u32_rgba(*color),
-        )
 
 
 key_handlers = defaultdict(list)
@@ -158,8 +99,9 @@ class DrawWorld:
         self.window_pos = Vec2(0, 0)
         self.window_size = Vec2(0, 0)
         self.window_mouse_pos = Vec2(0, 0)
+        self.window_mouse_raw = Vec2(0, 0)
 
-        self.mouse_at = Vec2(0, 0)  # mouse grid position
+        self.mouse_pix = Vec2(0, 0)  # mouse grid position
 
     @property
     def vscale(self):
@@ -246,7 +188,7 @@ class DrawWorld:
     def zoom(self, speed):
         self.scale = max(self.scale_speed, min(self.scale_max, self.scale + speed))
 
-        mouse = self.window_mouse_pos - self.window_pos
+        mouse = self.window_mouse_raw - self.window_pos
         self.offset = self.offset + mouse * (1 / self.scale - 1 / (self.scale - speed))
 
     @property
@@ -281,37 +223,40 @@ class DrawWorld:
             with window("Battlefield", flags=imgui.WINDOW_NO_TITLE_BAR):
                 self.window_pos = Vec2(*imgui.get_window_position())
                 self.window_size = Vec2(*imgui.get_window_size())
-                self.window_mouse_pos = Vec2(*imgui.get_mouse_pos())
+                self.window_mouse_raw = Vec2(*imgui.get_mouse_pos())
+                self.window_mouse_pos = (
+                    self.get_win_mouse_pos() - self.soffset
+                ) / self.scale
 
-                self.mouse_at = self.togrid(self.get_win_mouse_pos())
+                self.mouse_pix = self.togrid(self.get_win_mouse_pos())
 
                 while self.handler_queue:
                     handler, *args = self.handler_queue.popleft()
                     handler(self, *args)
 
-                brush = Brush(self)
+                pix = PixelBrush(self)
 
-                brush.image(self.fromgrid((0, 0)), "snowman_happy")
-                brush.image(self.fromgrid((6, 6)), "snowman_angry")
-                brush.image(self.fromgrid((5, 6)), "santa")
-                brush.image(self.fromgrid((4, 6)), "dirt")
-                brush.image(self.fromgrid((3, 6)), "dirt")
-                brush.image(self.fromgrid((2, 6)), "grinch")
+                pix.image(self.fromgrid((0, 0)), "snowman_happy")
+                pix.image(self.fromgrid((6, 6)), "snowman_angry")
+                pix.image(self.fromgrid((5, 6)), "santa")
+                pix.image(self.fromgrid((4, 6)), "dirt")
+                pix.image(self.fromgrid((3, 6)), "dirt")
+                pix.image(self.fromgrid((2, 6)), "grinch")
 
-                self.draw_world(brush)
+                self.draw_world()
 
                 self._status_window()
 
                 x, y = self.get_win_mouse_pos()
 
-                brush.highlight(
-                    self.fromgrid(self.mouse_at),
+                pix.highlight(
+                    self.fromgrid(self.mouse_pix),
                     color=Color.BLACK,
                     thickness=3,
                 )
-                brush.highlight(self.fromgrid(self.mouse_at))
-                brush.image(
-                    self.fromgrid(self.mouse_at),
+                pix.highlight(self.fromgrid(self.mouse_pix))
+                pix.image(
+                    self.fromgrid(self.mouse_pix),
                     "cursor",
                     offset_percent=Vec2(0.5, 0.5),
                     scale_percent=Vec2(1, 1) * (4 / self.scale),
@@ -340,7 +285,7 @@ class DrawWorld:
         """Override this method to draw the status window"""
         pass
 
-    def draw_world(self, brush: Brush):
+    def draw_world(self):
         """Override this method to draw the world"""
         pass
 

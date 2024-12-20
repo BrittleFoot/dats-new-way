@@ -6,8 +6,9 @@ import imgui
 import pygame
 from fire import Fire
 
-from draw import Brush, DrawWorld, key_handler, window
+from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
+from util.brush import BrushyBrush, PixelBrush
 from util.itypes import Vec2
 
 basicConfig(
@@ -53,11 +54,21 @@ class Super(DrawWorld):
         self.offset = Vec2(0, 0)
         self.scale = 2
 
-    def draw_world(self, brush: Brush):
+    #####
+    ###################################
+
+    def draw_world(self):
+        pix = PixelBrush(self)
+        brush = BrushyBrush(self)
         world = self.get_world_to_draw()
 
         for item in world.map:
-            brush.image(self.fromgrid(item), "stone")
+            pix.image(self.fromgrid(item), "stone")
+
+        brush.image_circle(Vec2(0, 0), 30, "hat")
+
+    ###################################
+    #####
 
     def get_world_to_draw(self):
         if self.config.realtime:
@@ -122,7 +133,11 @@ class Super(DrawWorld):
 
         imgui.text_disabled("Mise:")
         imgui.same_line()
-        imgui.text(f"{self.mouse_at}")
+        imgui.text(f"{self.window_mouse_pos}")
+
+        imgui.text_disabled("Mpix:")
+        imgui.same_line()
+        imgui.text(f"{self.mouse_pix}")
 
 
 def main(replay_file=None):
