@@ -35,10 +35,14 @@ class Snake:
 
     @property
     def head(self):
+        if not self.geometry:
+            return None
         return self.geometry[0]
 
     @property
     def body(self):
+        if not self.geometry:
+            return []
         return self.geometry[1:]
 
 
@@ -50,10 +54,15 @@ class EnemySnake:
 
     @property
     def head(self):
+        if not self.geometry:
+            return None
+
         return self.geometry[0]
 
     @property
     def body(self):
+        if not self.geometry:
+            return []
         return self.geometry[1:]
 
 

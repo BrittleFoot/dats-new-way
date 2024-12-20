@@ -172,7 +172,6 @@ class Super(DrawWorld):
                 imgui.text(f"Head: {snake.head}")
 
                 if imgui.button(f"Focus #{snake.id}"):
-                    self.head = snake.geometry[0]
                     self.snake = snake
 
                 imgui.separator()
