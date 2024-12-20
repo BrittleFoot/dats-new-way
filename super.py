@@ -10,7 +10,7 @@ from client import ApiClient
 from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
 from gt import Map, parse_map
-from util.brush import BrushyBrush, PixelBrush
+from util.brush import PixelBrush
 from util.itypes import Vec2
 
 basicConfig(
@@ -66,14 +66,8 @@ class Super(DrawWorld):
     ###################################
 
     def draw_world(self):
-        pix = PixelBrush(self)
-        brush = BrushyBrush(self)
+        brush = PixelBrush(self)
         world = self.get_world_to_draw()
-
-        for item in world.map:
-            pix.image(self.fromgrid(item), "stone")
-
-        brush.image_circle(Vec2(0, 0), 30, "hat")
 
     ###################################
     #####
