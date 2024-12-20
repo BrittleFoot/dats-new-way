@@ -31,7 +31,7 @@ class Config:
     realtime = True
 
     current_z = 0
-    fade = 0.1
+    fade = 0.05
 
 
 class Super(DrawWorld):
@@ -115,7 +115,13 @@ class Super(DrawWorld):
         for snake in world.snakes:
             v, z = snake.head.t2()
 
-            brush.square(self.fromgrid(v), Color.GOLD.but(a=hide(z)))
+            if self.snake and snake.id == self.snake.id:
+                brush.image(
+                    self.fromgrid(v), "snowman_happy", color=Color.GREEN.but(a=hide(z))
+                )
+            else:
+                brush.square(self.fromgrid(v), Color.GOLD.but(a=hide(z)))
+
             for point in snake.body:
                 v, z = point.t2()
                 brush.square(self.fromgrid(v), Color.YELLOW.but(a=hide(z)))
@@ -179,11 +185,15 @@ class Super(DrawWorld):
 
         with window("Snakes"):
             for snake in w.snakes:
+                if self.snake and snake.id == self.snake.id:
+                    imgui.text_colored("You", 0, 255, 0)
+
                 imgui.text(f"Snake: {snake.id[:5]}...")
                 imgui.text(f"Length: {len(snake.geometry)}")
                 imgui.text(f"Status: {snake.status}")
+                imgui.text(f"Head: {snake.head}")
 
-                if imgui.button("Focus"):
+                if imgui.button(f"Focus #{snake.id}"):
                     self.head = snake.geometry[0]
                     self.snake = snake
 
