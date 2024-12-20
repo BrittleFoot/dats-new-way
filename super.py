@@ -66,7 +66,11 @@ class Super(DrawWorld):
     @key_handler(pygame.K_SPACE)
     def reset_camera(self, _):
         self.offset = Vec2(0, 0)
-        self.scale = 2
+        if self.snake:
+            self.offset = (
+                -self.snake.head.to2() * self.S + self.window_size / 2 / self.scale
+            )
+        # self.scale = 2
 
     #####
     ###################################

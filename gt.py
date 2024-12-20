@@ -45,6 +45,9 @@ class Snake:
             return []
         return self.geometry[1:]
 
+    def __bool__(self):
+        return self.status == "alive"
+
 
 @dataclass
 class EnemySnake:
