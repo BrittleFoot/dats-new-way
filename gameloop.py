@@ -23,11 +23,11 @@ class WorldBuild:
 
         self.history: list[Map] = [init]
 
-    def pull_world(self):
+    def pull_world(self, commands):
         if self.replay:
             return self._pull_replay()
 
-        return self._pull_api()
+        return self._pull_api(commands)
 
     def _pull_replay(self):
         try:
@@ -36,9 +36,9 @@ class WorldBuild:
         except StopIteration:
             return None
 
-    def _pull_api(self):
+    def _pull_api(self, commands):
         try:
-            data = api.world({})
+            data = api.world({"snakes": commands})
             self.scribe.dump_world(lambda: data)
 
             mp = parse_map(data)
@@ -52,8 +52,8 @@ class WorldBuild:
     def get_latest_world(self):
         return self.history[-1], len(self.history) - 1
 
-    def load_world_state(self):
-        world = self.pull_world()
+    def load_world_state(self, commands):
+        world = self.pull_world(commands)
 
         if not world:
             return self.get_latest_world()
@@ -76,7 +76,7 @@ class WorldBuild:
 
 
 class Gameloop:
-    def __init__(self, init: Map, replay_file=None, game_name=None):
+    def __init__(self, init: Map = None, replay_file=None, game_name=None):
         if not replay_file and not game_name:
             raise ValueError("Either `replay_file` or `game_name` must be provided")
 
@@ -94,11 +94,18 @@ class Gameloop:
         self.world_builder = WorldBuild(self.scribe, self.replay, init)
         self.world, self.history_point = self.world_builder.get_latest_world()
 
+        self.commands = []
+
+    def add_command(self, command):
+        self.commands.append(command)
+
     def loop(self):
         logger.info("Gameloop started")
         try:
             while self.running:
-                self.world, history_point = self.world_builder.load_world_state()
+                self.world, history_point = self.world_builder.load_world_state(
+                    self.commands
+                )
 
                 if history_point <= self.history_point:
                     sleep(0.1)

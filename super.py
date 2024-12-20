@@ -10,7 +10,7 @@ from fire import Fire
 from client import ApiClient
 from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
-from gt import Map, Vec3d, parse_map
+from gt import Map, Snake, Vec3d, parse_map
 from util.brush import PixelBrush
 from util.itypes import Color, Vec2
 
@@ -31,12 +31,13 @@ class Config:
     realtime = True
 
     current_z = 0
+    fade = 0.1
 
 
 class Super(DrawWorld):
     def __init__(
         self,
-        init: Map,
+        init: Map = None,
         game_name=None,
         replay_file=None,
     ):
@@ -51,7 +52,7 @@ class Super(DrawWorld):
         self.wb = self.gameloop.world_builder
         self.config = Config()
 
-        self.head: Vec3d = None
+        self.snake: Snake = None
 
     def start(self):
         try:
@@ -70,32 +71,59 @@ class Super(DrawWorld):
     #####
     ###################################
 
+    @key_handler(pygame.K_w)
+    def move_up(self, _):
+        if not self.snake:
+            return
+
+        self.gameloop.add_command(self.snake.move_command(Vec3d(0, -1, 0)))
+
+    @key_handler(pygame.K_s)
+    def move_down(self, _):
+        if not self.snake:
+            return
+
+        self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
+
+    @key_handler(pygame.K_a)
+    def move_left(self, _):
+        if not self.snake:
+            return
+
+        self.gameloop.add_command(self.snake.move_command(Vec3d(-1, 0, 0)))
+
+    @key_handler(pygame.K_d)
+    def move_right(self, _):
+        if not self.snake:
+            return
+
+        self.gameloop.add_command(self.snake.move_command(Vec3d(1, 0, 0)))
+
     def draw_world(self):
         brush = PixelBrush(self)
         world = self.get_world_to_draw()
 
         xy, z = world.size.t2()
+
+        if self.snake:
+            self.config.current_z = self.snake.head.z
+
         cz = self.config.current_z
 
-        hide = lambda z: 0.5 if z != cz else 1
+        hide = lambda z: self.config.fade if z != cz else 1
 
         for snake in world.snakes:
-            head, *tail = snake.geometry
-            self.head = head
-
-            v, z = head.t2()
+            v, z = snake.head.t2()
 
             brush.square(self.fromgrid(v), Color.GOLD.but(a=hide(z)))
-            for point in tail:
+            for point in snake.body:
                 v, z = point.t2()
                 brush.square(self.fromgrid(v), Color.YELLOW.but(a=hide(z)))
 
         for enemy in world.enemies:
-            head, *tail = enemy.geometry
-
-            v, z = head.t2()
+            v, z = enemy.head.t2()
             brush.square(self.fromgrid(v), Color.RED.but(a=hide(z)))
-            for point in tail:
+            for point in enemy.body:
                 v, z = point.t2()
                 brush.square(self.fromgrid(v), Color.PINK.but(a=hide(z)))
 
@@ -134,6 +162,33 @@ class Super(DrawWorld):
         C = self.config
         timelen = len(self.wb.history) - 1
 
+        with window("Display"):
+            _, C.current_z = imgui.slider_int(
+                "Z",
+                C.current_z,
+                min_value=0,
+                max_value=w.size.z,
+            )
+
+            _, C.fade = imgui.slider_float(
+                "Snake Fade",
+                C.fade,
+                min_value=0,
+                max_value=1,
+            )
+
+        with window("Snakes"):
+            for snake in w.snakes:
+                imgui.text(f"Snake: {snake.id[:5]}...")
+                imgui.text(f"Length: {len(snake.geometry)}")
+                imgui.text(f"Status: {snake.status}")
+
+                if imgui.button("Focus"):
+                    self.head = snake.geometry[0]
+                    self.snake = snake
+
+                imgui.separator()
+
         with window("Sacred Timeline"):
             changed, C.timepoint = imgui.slider_int(
                 "Timepoint",
@@ -149,13 +204,6 @@ class Super(DrawWorld):
                     C.realtime = True
 
             _, C.realtime = imgui.checkbox("Realtime", C.realtime)
-
-            _, C.current_z = imgui.slider_float(
-                "Z",
-                C.current_z,
-                min_value=0,
-                max_value=w.size.z,
-            )
 
     def imgui_keybindings(self):
         C = self.config

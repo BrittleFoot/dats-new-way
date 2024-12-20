@@ -33,12 +33,28 @@ class Snake:
     def move_command(self, direction: Vec3d):
         return {"id": self.id, "direction": list(direction)}
 
+    @property
+    def head(self):
+        return self.geometry[0]
+
+    @property
+    def body(self):
+        return self.geometry[1:]
+
 
 @dataclass
 class EnemySnake:
     geometry: List[Vec3d]
     status: str
     kills: int
+
+    @property
+    def head(self):
+        return self.geometry[0]
+
+    @property
+    def body(self):
+        return self.geometry[1:]
 
 
 @dataclass
