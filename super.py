@@ -77,25 +77,43 @@ class Super(DrawWorld):
         xy, z = world.size.t2()
         cz = self.config.current_z
 
+        hide = lambda z: 0.5 if z != cz else 1
+
         for snake in world.snakes:
             head, *tail = snake.geometry
             self.head = head
 
             v, z = head.t2()
 
-            brush.square(self.fromgrid(v), Color.GOLD)
+            brush.square(self.fromgrid(v), Color.GOLD.but(a=hide(z)))
             for point in tail:
                 v, z = point.t2()
-                brush.square(self.fromgrid(v), Color.YELLOW)
+                brush.square(self.fromgrid(v), Color.YELLOW.but(a=hide(z)))
 
         for enemy in world.enemies:
             head, *tail = enemy.geometry
 
             v, z = head.t2()
-            brush.square(self.fromgrid(v), Color.RED)
+            brush.square(self.fromgrid(v), Color.RED.but(a=hide(z)))
             for point in tail:
                 v, z = point.t2()
-                brush.square(self.fromgrid(v), Color.RED)
+                brush.square(self.fromgrid(v), Color.PINK.but(a=hide(z)))
+
+        for food in world.food:
+            v, z = food.coordinate.t2()
+            brush.image(self.fromgrid(v), "gift", color=Color.WHITE.but(a=hide(z)))
+
+        for food in world.golden:
+            v, z = food.coordinate.t2()
+            brush.image(self.fromgrid(v), "gift2", color=Color.WHITE.but(a=hide(z)))
+
+        for food in world.sus:
+            v, z = food.coordinate.t2()
+            brush.image(self.fromgrid(v), "hat", color=Color.WHITE.but(a=hide(z)))
+
+        for fence in world.fences:
+            v, z = fence.t2()
+            brush.square(self.fromgrid(v), Color.WHITE.but(a=hide(z)))
 
     ###################################
     #####
