@@ -197,7 +197,7 @@ def main(replay_file=None):
         print(f"🚀 Playing round: {name}")
 
         m = parse_map(ApiClient("test").world())
-        sup = Super(game_name=f"{name}-" + environ["USER"], init=m)
+        sup = Super(game_name=f"{name}-" + environ.get("USER", "dashik"), init=m)
         sup.start()
 
 
