@@ -168,7 +168,12 @@ def pick_best_food_astar(
         if dist == 0:
             # Food is right under the head
             return f
-        score = f.points / dist
+
+        mod = 1
+        if f.type == "golden":
+            mod = 1.5
+
+        score = f.points / dist * mod
         if score > best_score:
             best_score = score
             best_food = f

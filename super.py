@@ -162,7 +162,7 @@ class Super(DrawWorld):
                 continue
 
             v, z = enemy.head.t2()
-            brush.square(g(v), Color.RED.but(a=hide(z)))
+            brush.image(g(v), "grinch", Color.RED.but(a=hide(z)))
             for point in enemy.body:
                 v, z = point.t2()
                 brush.square(g(v), Color.PINK.but(a=hide(z)))

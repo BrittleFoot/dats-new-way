@@ -14,7 +14,7 @@ from imgui.integrations.pygame import PygameRenderer
 
 from gameloop import Gameloop
 from util.brush import PixelBrush
-from util.itypes import Color, Vec2
+from util.itypes import Color, Vec2, measure
 
 
 @contextmanager
@@ -238,9 +238,10 @@ class DrawWorld:
 
                 pix.image(self.fromgrid((0, 0)), "tree")
 
-                self.draw_world()
+                with measure("ui"):
+                    self.draw_world()
 
-                self._status_window()
+                    self._status_window()
 
                 x, y = self.get_win_mouse_pos()
 
