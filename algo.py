@@ -64,6 +64,7 @@ def a_star(
 
             # cost of moving to next cell is less if it is closer to the center
             cost = ATTRACTOR.distance(nxt)
+            cost = 1
             new_cost = cost_so_far[current] + cost
             if nxt not in cost_so_far or new_cost < cost_so_far[nxt]:
                 cost_so_far[nxt] = new_cost

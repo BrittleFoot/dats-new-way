@@ -249,7 +249,8 @@ class Super(DrawWorld):
 
                 imgui.text(f" Snake: {snake.name}...")
                 imgui.text(f"Length: {len(snake.geometry)}")
-                imgui.text(f"Status: {snake.status}")
+                color = Color.GREEN if snake.status == "alive" else Color.RED
+                imgui.text_colored(f"Status: {snake.status}", *color)
                 imgui.text(f"  Head: {snake.head}")
 
                 brain = self.gameloop.get_brain(snake)

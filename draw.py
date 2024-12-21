@@ -44,7 +44,7 @@ def color(what, color: Color):
         imgui.pop_style_color()
 
 
-SIZE = 16
+SIZE = 8
 HSIZE = SIZE // 2
 
 

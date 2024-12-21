@@ -202,9 +202,9 @@ class Gameloop:
                 center = world.size / 2
                 to_center = center - snake.head
 
-                if not path and to_center.len() > world.size.len() / 4:
+                if not path and to_center.len() > world.size.len() / 16:
                     to_center_unit = to_center.normalize() * min(
-                        10, to_center.len() - 3
+                        10, to_center.len() - 5
                     )
 
                     b = (snake.head + to_center_unit).round()
@@ -213,12 +213,19 @@ class Gameloop:
 
                     if path and len(path) > 1:
                         direction = path[1] - path[0]
-                        paths.append(SnakeBrain(snake, path, direction, "CENTER "))
+                        paths.append(SnakeBrain(snake, path, direction, "CENTER"))
 
                 if not path and len(food) > 1:
-                    next_food = sort_food_by_price(world, snake, 40)[0].coordinate
+                    next_food = sort_food_by_price(world, snake, 100)[0]
 
-                    path = find_path(world, snake.head, next_food, local_timeout)
+                    to_food = next_food.coordinate - snake.head
+                    if to_food.len() > 20:
+                        to_food_unit = to_food.normalize() * min(10, to_food.len())
+                        b = (snake.head + to_food_unit).round()
+                    else:
+                        b = next_food.coordinate
+
+                    path = find_path(world, snake.head, b, local_timeout)
 
                     if path and len(path) > 1:
                         direction = path[1] - path[0]
@@ -276,7 +283,7 @@ class Gameloop:
                     # 2
                     if not self.replay:
                         with measure("gameloop_sleep"):
-                            sleep(max(0, timeout))
+                            sleep(max(0, timeout + 0.01))
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)
