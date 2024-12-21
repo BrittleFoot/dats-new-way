@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
 from util.itypes import Vec2
 
-snakes = ["Abra", "Kadabra", "Ekans"]
+snakes = ["Abra", "Kadabra", "Ekans", "Bobra", 'Vydra']
 id_to_name = {}
 
 
@@ -52,7 +52,6 @@ class Vec3d(NamedTuple):
             Vec3d(0, 0, 1),
             Vec3d(0, 0, -1),
         ]
-        shuffle(directions)
         for d in directions:
             yield self + d
 
@@ -86,7 +85,7 @@ class Snake:
     def name(self):
         if self.id not in id_to_name:
             id_to_name[self.id] = snakes.pop()
-        return f" {id_to_name[self.id]}#{self.id[:5]}"
+        return f"{id_to_name[self.id]}#{self.id[:5]}"
 
     def __bool__(self):
         return self.status == "alive"
