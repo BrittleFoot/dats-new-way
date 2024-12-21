@@ -138,7 +138,8 @@ class Super(DrawWorld):
 
             for point1, point2 in zip(path.path, path.path[1:]):
                 v1, z1 = point1.t2()
-                a = hide(z1) * 2
+                a = hide(z1) * 4
+                blue = Color.BLUE.but(a=a, r=0.1, g=0.1)
 
                 v2, z2 = point2.t2()
 
@@ -146,11 +147,11 @@ class Super(DrawWorld):
                     brush.image(
                         g(v1),
                         "trapdoor",
-                        Color.BLUE.but(a=a),
+                        blue,
                         scale_percent=Vec2(0.25, 0.25),
                     )
                 else:
-                    brush.arrow(g(v1), g(v2), Color.BLUE.but(a=a))
+                    brush.arrow(g(v1), g(v2), blue)
 
         for enemy in world.enemies:
             if not enemy.geometry:
@@ -322,6 +323,10 @@ class Super(DrawWorld):
         imgui.text_disabled("Turn:")
         imgui.same_line()
         imgui.text(f"{self.gameloop.upd.turn}")
+
+        imgui.text_disabled("Timeout:")
+        imgui.same_line()
+        imgui.text(f"{self.gameloop.upd.timeout}")
 
         imgui.text_disabled("Scle:")
         imgui.same_line()

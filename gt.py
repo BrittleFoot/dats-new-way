@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from pprint import pprint
-from random import shuffle
 from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
 from util.itypes import Vec2
 
-snakes = ["Abra", "Kadabra", "Ekans", "Bobra", 'Vydra']
+snakes = ["Abra", "Kadabra", "Bobra", "Vydra", "Tundra"][::-1]
 id_to_name = {}
 
 
@@ -135,7 +134,7 @@ class Map:
     snakes: List[Snake]
     turn: int
     tick_remain_ms: int
-    timeout: int
+    revive_timeout: int
 
 
 def parse_snake(data: Dict[str, Any]) -> Snake:
@@ -187,7 +186,7 @@ def parse_map(data: Dict[str, Any]) -> Map:
         #
         turn=data["turn"],
         tick_remain_ms=data["tickRemainMs"],
-        timeout=data["reviveTimeoutSec"],
+        revive_timeout=data["reviveTimeoutSec"],
         #
         snakes=[parse_snake(snake) for snake in data["snakes"]],
         enemies=[parse_enemy_snake(enemy) for enemy in data["enemies"]],

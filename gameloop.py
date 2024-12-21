@@ -1,13 +1,14 @@
 import threading
 from dataclasses import dataclass
 from logging import getLogger
+from random import shuffle
 from time import perf_counter, sleep
 from typing import Literal
 
 from algo import find_path, sort_food_by_distance
 from client import ApiClient
 from gt import Map, Snake, Vec3d, parse_map
-from util.itypes import measure
+from util.itypes import TIMERS, measure
 from util.scribe import Scribe
 
 api = ApiClient("test")
@@ -100,6 +101,12 @@ class UpdateState:
     turn: int
     frame: int
     state: Literal["Network", "Algorithm", "Command Send"]
+    timeout: int
+    algo_for_turn: int
+
+    @property
+    def algo_done(self):
+        return self.algo_for_turn == self.turn
 
 
 class Gameloop:
@@ -131,7 +138,7 @@ class Gameloop:
         self.world_builder = WorldBuild(self.scribe, self.replay, init, self)
         self.world, _ = self.world_builder.get_latest_world()
 
-        self.upd = UpdateState(0, 0, "Network")
+        self.upd = UpdateState(0, 0, "Network", 0, 0)
 
         self.commands = []
 
@@ -152,9 +159,14 @@ class Gameloop:
 
         return []
 
-    def algos(self, world: Map):
+    def algos(self, world: Map, timeout):
         paths = []
-        for snake in world.snakes:
+        snakes = list(filter(bool, world.snakes))
+        shuffle(snakes)
+
+        remaining_time = timeout
+
+        for i, snake in enumerate(snakes):
             if not snake:
                 continue
 
@@ -166,7 +178,13 @@ class Gameloop:
             goal = food[0].coordinate
 
             with measure(f"{snake.name} find_path"):
-                path = find_path(world, snake.head, goal, timeout=0.2)
+                start = perf_counter()
+
+                path = find_path(
+                    world, snake.head, goal, timeout=remaining_time / (len(snakes) - i)
+                )
+
+                remaining_time -= perf_counter() - start
                 # todo - next goal try 3 food or move closer to center
 
             if path and len(path) > 1:
@@ -182,7 +200,9 @@ class Gameloop:
                 with measure("world_load"):
                     self.upd.state = "Network"
                     self.world = self.world_builder.load_world_state(self.commands)
+                    self.commands = []
                     self.upd.turn = self.world.turn
+                    self.upd.timeout = self.world.tick_remain_ms
 
                 if self.replay and self.replay_loading:
                     continue
@@ -190,22 +210,36 @@ class Gameloop:
                 if self.replay and not self.replay_loading and self.replay_simulate:
                     self.world = self.world_builder.history[self.replay_simulate]
                     self.upd.turn = self.world.turn
+                    self.upd.timeout = self.world.tick_remain_ms
 
-                t = perf_counter()
-
-                with measure("algo"):
-                    self.upd.state = "Algorithm"
-                    self.algos(self.world)
-
-                # вот тут отправить второй раз
-
-                dt = perf_counter() - t
+                # assume that second call will be the same
+                # save time for network call
+                dt = TIMERS["world_load"]
+                timeout = self.world.tick_remain_ms - dt
 
                 if self.replay:
-                    sleep(0.33)
+                    # just some reasonable value
+                    timeout = 0.8
 
-                if not self.replay:
-                    sleep(max(0, self.world.tick_remain_ms / 1000 - dt))
+                # Сначала идет в 1
+                # потом через мир, отправляет сразу команды
+                # (тут есть гибкость еще оттянуть время)
+                # потом идет в 2, спит, и по кругу
+
+                if not self.upd.algo_done:
+                    # 1
+                    with measure("algo"):
+                        self.upd.state = "Algorithm"
+                        self.algos(self.world, timeout=timeout)
+                        self.upd.algo_for_turn = self.world.turn
+
+                else:
+                    if self.replay:
+                        sleep(0.33)
+
+                    # 2
+                    if not self.replay:
+                        sleep(max(0, timeout))
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)
