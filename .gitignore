@@ -171,3 +171,6 @@ data/replays/*
 .DS_Store
 
 t__*
+
+
+*.ljson
