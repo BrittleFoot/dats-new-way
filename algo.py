@@ -10,7 +10,7 @@ def in_bounds(v: Vec3d, SIZE):
     return 0 <= v.x < SIZE.x and 0 <= v.y < SIZE.y and 0 <= v.z < SIZE.z
 
 
-DEPTH = 666
+DEPTH = 1000
 
 
 def a_star(

@@ -239,7 +239,8 @@ class Gameloop:
 
                     # 2
                     if not self.replay:
-                        sleep(max(0, timeout))
+                        with measure("gameloop_sleep"):
+                            sleep(max(0, timeout))
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)

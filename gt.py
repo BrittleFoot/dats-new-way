@@ -87,7 +87,10 @@ class Snake:
         return f"{id_to_name[self.id]}#{self.id[:5]}"
 
     def __bool__(self):
-        return self.status == "alive"
+        return self.status == "alive" and bool(self.geometry)
+
+    def __eq__(self, other):
+        return self.id == other.id
 
 
 @dataclass

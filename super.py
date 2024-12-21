@@ -78,6 +78,11 @@ class Super(DrawWorld):
         if not world:
             return
 
+        if self.snake:
+            for s in world.snakes:
+                if s.id == self.snake.id:
+                    self.snake = s
+
         xy, z = world.size.t2()
 
         brush.rect(self.fromgrid(Vec2(0, 0) - 1), self.fromgrid(xy) + 1, thickness=2)
@@ -234,16 +239,16 @@ class Super(DrawWorld):
 
         with window("Snakes"):
             for snake in sorted(w.snakes, key=lambda s: s.name):
-                if self.snake and snake.id == self.snake.id:
+                if self.snake and snake == self.snake:
                     imgui.text_colored("You", 0, 255, 0)
 
                 imgui.text(f" Snake: {snake.name}...")
                 imgui.text(f"Length: {len(snake.geometry)}")
                 imgui.text(f"Status: {snake.status}")
-                imgui.text(f" Head: {snake.head}")
+                imgui.text(f"  Head: {snake.head}")
 
                 path = self.gameloop.get_path(snake)
-                imgui.text(f" Path: {len(path)} cells")
+                imgui.text(f"  Path: {len(path)} cells")
 
                 if imgui.button(f"Focus##{snake.id}"):
                     self.snake = snake
@@ -285,6 +290,9 @@ class Super(DrawWorld):
 
     def imgui_keybindings(self):
         C = self.config
+
+        if self.config.follow:
+            self.focus_snake()
 
         if self.snake and not self.gameloop.replay:
             if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=False):
