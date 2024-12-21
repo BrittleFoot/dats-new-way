@@ -11,7 +11,7 @@ from fire import Fire
 
 from client import ApiClient
 from draw import DrawWorld, key_handler, window
-from gameloop import Gameloop
+from gameloop import Gameloop, api
 from gt import Map, Snake, Vec3d, parse_map
 from util.brush import PixelBrush
 from util.itypes import TIMERS, Color, Vec2
@@ -366,7 +366,7 @@ def main(replay_file=None, *, upto: int = None):
     if replay_file:
         Super(replay_file=replay_file, upto=upto).start()
     else:
-        rounds = ApiClient("test").rounds()
+        rounds = api.rounds()
         rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
 
         actives = [r for r in rounds["rounds"] if r["status"] == "active"]

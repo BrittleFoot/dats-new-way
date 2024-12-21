@@ -1,13 +1,17 @@
 import threading
 from dataclasses import dataclass
 from logging import getLogger
-from random import shuffle
+from random import randint, shuffle
 from time import perf_counter, sleep
 from typing import Literal
 
-from algo import find_path, sort_food_by_distance, sort_food_by_price
+from algo import find_path_brain
+from algo2 import (
+    calculate_surrounding_values,
+    snake_ai_move_astar_multi,
+)
 from client import ApiClient
-from gt import Map, Snake, SnakeBrain, parse_map
+from gt import Map, Snake, SnakeBrain, Vec3d, parse_map
 from util.itypes import TIMERS, measure
 from util.scribe import Scribe
 
@@ -162,71 +166,82 @@ class Gameloop:
 
         return None
 
-    def algos(self, world: Map, timeout):
-        paths = []
+    def algos2(self, world: Map, timeout):
+        brains = []
+
         snakes = list(filter(bool, world.snakes))
         shuffle(snakes)
 
         remaining_time = timeout
 
+        best_food_cache = None
+        cache_idx = 0
+
         for i, snake in enumerate(snakes):
-            if not snake:
-                continue
-
-            food = sort_food_by_distance(world, snake)
-
-            if not food:
-                continue
-
-            goal = food[0].coordinate
+            snake_time = remaining_time / (len(snakes) - i)
 
             with measure(f"{snake.name} find_path"):
-                start = perf_counter()
+                ai_start = perf_counter()
 
-                local_timeout = remaining_time / (len(snakes) - i)
+                snake_time = remaining_time / (len(snakes) - i)
+                main_time = snake_time * 0.8
 
-                path = find_path(world, snake.head, goal, timeout=local_timeout)
+                brain = snake_ai_move_astar_multi(world, snake, timeout=main_time)
+                if brain:
+                    brains.append(brain)
+                    remaining_time -= perf_counter() - ai_start
+                    continue
 
-                if path and len(path) > 1:
-                    direction = path[1] - path[0]
-                    paths.append(SnakeBrain(snake, path, direction, "FOOD"))
+                snake_time -= perf_counter() - ai_start
+
+                if not best_food_cache:
+                    with measure("calculate_surroundings"):
+                        best_food_cache = calculate_surrounding_values(world, radius=70)
+
+                _, best = best_food_cache[cache_idx]
+                cache_idx += 1
+
+                if best:
+                    b = best.coordinate
+
+                    if snake.head.manh(best.coordinate) > 20:
+                        vector_to_best = best.coordinate - snake.head
+                        b = (snake.head + vector_to_best.normalize() * 10).round()
+
+                    brain = find_path_brain(
+                        world, snake, b, timeout=snake_time, label="BEST"
+                    )
+                    if brain:
+                        brains.append(brain)
+                        remaining_time -= perf_counter() - ai_start
+                        continue
 
                 center = world.size / 2
                 to_center = center - snake.head
-
-                if not path and to_center.len() > world.size.len() / 16:
-                    to_center_unit = to_center.normalize() * min(
-                        10, to_center.len() - 5
-                    )
-
+                to_center_unit = to_center.normalize() * min(10, to_center.len() - 5)
+                if to_center.len() > world.size.len() / 16:
                     b = (snake.head + to_center_unit).round()
+                    brain = find_path_brain(
+                        world, snake, b, timeout=snake_time, label="CENTER"
+                    )
+                    if brain:
+                        brains.append(brain)
+                        remaining_time -= perf_counter() - ai_start
+                        continue
 
-                    path = find_path(world, snake.head, b, local_timeout)
+                snake_time -= perf_counter() - ai_start
 
-                    if path and len(path) > 1:
-                        direction = path[1] - path[0]
-                        paths.append(SnakeBrain(snake, path, direction, "CENTER"))
+                random = Vec3d(randint(3, 6), randint(3, 6), randint(3, 6))
+                b = snake.head + random
+                brain = find_path_brain(
+                    world, snake, b, timeout=snake_time, label="RANDOM"
+                )
+                if brain:
+                    brains.append(brain)
+                    remaining_time -= perf_counter() - ai_start
+                    continue
 
-                if not path and len(food) > 1:
-                    next_food = sort_food_by_price(world, snake, 100)[0]
-
-                    to_food = next_food.coordinate - snake.head
-                    if to_food.len() > 20:
-                        to_food_unit = to_food.normalize() * min(10, to_food.len())
-                        b = (snake.head + to_food_unit).round()
-                    else:
-                        b = next_food.coordinate
-
-                    path = find_path(world, snake.head, b, local_timeout)
-
-                    if path and len(path) > 1:
-                        direction = path[1] - path[0]
-                        paths.append(SnakeBrain(snake, path, direction, "JUSY FOOD"))
-
-                remaining_time -= perf_counter() - start
-                # todo - next goal try 3 food or move closer to center
-
-        self.paths = paths
+        self.paths = brains
 
     def loop(self):
         logger.info("Gameloop started")
@@ -265,7 +280,7 @@ class Gameloop:
                     # 1
                     with measure("algo"):
                         self.upd.state = "Algorithm"
-                        self.algos(self.world, timeout=timeout)
+                        self.algos2(self.world, timeout=timeout * 0.95)
                         self.upd.algo_for_turn = self.world.turn
 
                 else:
@@ -275,7 +290,7 @@ class Gameloop:
                     # 2
                     if not self.replay:
                         with measure("gameloop_sleep"):
-                            sleep(max(0, timeout + 0.01))
+                            sleep(max(0, timeout + 0.02))
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)

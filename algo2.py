@@ -1,4 +1,5 @@
 import heapq
+import time
 from typing import Dict, List, Optional, Tuple
 
 from gt import Food, Map, Snake, SnakeBrain, Vec3d
@@ -34,6 +35,7 @@ def a_star_multi_goal(
     start: Vec3d,
     goal_positions: List[Vec3d],
     game_map: Map,
+    timeout: float,
 ) -> Tuple[Dict[Vec3d, int], Dict[Vec3d, Vec3d]]:
     """
     Runs A* from 'start' to find paths to any of the 'goal_positions'.
@@ -42,9 +44,22 @@ def a_star_multi_goal(
       - came_from: to reconstruct path to any visited cell
     We'll continue searching until all goals are found (or the open set is empty).
     """
+    strt_t = time.perf_counter()
 
     # Convert goal_positions to a set for quick membership checks
     goal_set = set(goal_positions)
+
+    bad_cells = set(game_map.fences)
+    for snake in game_map.snakes:
+        bad_cells.update(snake.geometry)
+
+    for enemy in game_map.enemies:
+        bad_cells.update(enemy.geometry)
+
+        for seg in enemy.head.neighbors():
+            bad_cells.update(seg.neighbors())
+
+    ATTRACTOR = game_map.size / 2
 
     # Initialize
     gScore: Dict[Vec3d, float] = {}
@@ -63,7 +78,7 @@ def a_star_multi_goal(
     found_goals = 0
     discovered_goals = {}
 
-    while openSet:
+    while openSet and time.perf_counter() - strt_t < timeout:
         _, current = heapq.heappop(openSet)
 
         # If 'current' is a goal, record it
@@ -84,7 +99,12 @@ def a_star_multi_goal(
             if not is_valid_cell(neighbor, game_map):
                 continue
 
-            tentative_gScore = gScore[current] + 1  # cost 1 per move
+            if neighbor in bad_cells:
+                continue
+
+            center_cost = ATTRACTOR.distance(neighbor) / game_map.size.len()
+            cost = 1
+            tentative_gScore = gScore[current] + cost + center_cost**2
             old_gScore = gScore.get(neighbor, float("inf"))
 
             if tentative_gScore < old_gScore:
@@ -146,6 +166,7 @@ def get_next_move_astar_multi(
     snake: Snake,
     game_map: Map,
     radius: int,
+    timeout: float,
 ) -> Optional[Vec3d]:
     """
     1. Filter food by radius (optional).
@@ -156,7 +177,7 @@ def get_next_move_astar_multi(
 
     snake_head = snake.head
     # Combine normal + golden + suspicious
-    all_foods = game_map.food + game_map.golden + game_map.sus
+    all_foods = game_map.food
 
     # (Optional) pre-filter by Manhattan radius to reduce the goal set
     def manhattan_3d(a: Vec3d, b: Vec3d) -> int:
@@ -175,7 +196,7 @@ def get_next_move_astar_multi(
     goal_positions = [f.coordinate for f in candidate_food]
 
     # 2. Run multi-goal A*
-    gScore, came_from = a_star_multi_goal(snake_head, goal_positions, game_map)
+    gScore, came_from = a_star_multi_goal(snake_head, goal_positions, game_map, timeout)
 
     # 3. Pick best ratio
     best_food = pick_best_food_astar(candidate_food, gScore)
@@ -194,16 +215,76 @@ def get_next_move_astar_multi(
     return direction, path, best_food
 
 
-def snake_ai_move_astar_multi(map_data: Map, snake: Snake) -> Dict:
+def snake_ai_move_astar_multi(map_data: Map, snake: Snake, timeout) -> Dict:
     """
     Example function that picks a direction for our snake using multi-goal A*.
     """
     if not snake:
         return None
 
-    direction, path, food = get_next_move_astar_multi(snake, map_data, radius=100)
-    if not direction:
-        # fallback
+    answer = get_next_move_astar_multi(snake, map_data, radius=20, timeout=timeout)
+    if not answer:
         return None
 
+    direction, path, food = answer
+
     return SnakeBrain(snake, path, direction, f"FOOD {food}")
+
+
+def find_best_food_with_surrounding_value(map_data: Map, radius: int = 70):
+    """
+    Returns a tuple (best_food, best_sum) where:
+      - best_food is the Food object that has the greatest
+        "surrounding sum of points" (including itself) within 'radius'.
+      - best_sum is that total sum of points.
+
+    If there are no foods at all, returns (None, 0).
+    """
+
+    # Gather all foods (normal + golden + suspicious)
+    all_foods = [f for f in map_data.food if f.points > 0]
+
+    if not all_foods:
+        return None, 0  # no food at all
+
+    best_food = None
+    best_value = float("-inf")
+
+    # For each food f, sum the points of all foods g within distance <= radius
+    for f in all_foods:
+        surrounding_sum = 0
+        for g in all_foods:
+            if manhattan_3d(f.coordinate, g.coordinate) <= radius:
+                surrounding_sum += g.points
+
+        if surrounding_sum > best_value:
+            best_value = surrounding_sum
+            best_food = f
+
+    return best_food, best_value
+
+
+def calculate_surrounding_values(
+    map_data: Map,
+    radius: int = 30,
+) -> List[Tuple[Food, int]]:
+    """
+    Returns a list of (food_item, total_sum) for each food in the map,
+    where 'total_sum' is the sum of points of all foods within distance <= radius
+    of that food (including itself).
+    """
+
+    # Gather all food items (normal, golden, suspicious) in a single list
+    all_foods = [f for f in map_data.food if f.points > 0]
+
+    # Prepare an output list
+    results = []
+
+    for f in all_foods:
+        surrounding_sum = 0
+        for g in all_foods:
+            if manhattan_3d(f.coordinate, g.coordinate) <= radius:
+                surrounding_sum += g.points
+        results.append((surrounding_sum, f))
+
+    return sorted(results, reverse=True, key=lambda x: x[0])

@@ -59,7 +59,7 @@ class ApiClient:
             kwargs.setdefault(
                 "headers",
                 {
-                    # "Accept-Encoding": "gzip, deflate",
+                    "Accept-Encoding": "gzip, deflate",
                     "X-Auth-Token": KEY,
                 },
             )

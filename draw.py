@@ -73,7 +73,7 @@ class DrawWorld:
 
     def __init__(self):
         pygame.init()
-        self.WIN_SIZE = Vec2(1344, 768)
+        self.WIN_SIZE = Vec2(1650, 980)
 
         pygame.display.set_mode(self.WIN_SIZE, pygame.DOUBLEBUF | pygame.OPENGL)
 

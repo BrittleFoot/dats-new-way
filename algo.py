@@ -2,7 +2,7 @@ import heapq
 import time
 from typing import Dict, List, Optional
 
-from gt import Food, Map, Snake, Vec3d
+from gt import Food, Map, Snake, SnakeBrain, Vec3d
 
 
 def in_bounds(v: Vec3d, SIZE):
@@ -83,6 +83,23 @@ def find_path(map: Map, start: Vec3d, goal: Vec3d, timeout: float):
     enemies = map.snakes + map.enemies
 
     return a_star(start, goal, SIZE, fences, enemies, timeout)
+
+
+def find_path_brain(map: Map, snake: Snake, goal: Vec3d, timeout: float, label: str):
+    # Example usage:
+    SIZE = map.size
+    fences = map.fences
+    enemies = map.snakes + map.enemies
+
+    if not snake.geometry:
+        return None
+
+    path = a_star(snake.head, goal, SIZE, fences, enemies, timeout)
+    if not path:
+        return None
+
+    direction = path[1] - path[0]
+    return SnakeBrain(snake=snake, path=path, direction=direction, thinks=label)
 
 
 def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:
