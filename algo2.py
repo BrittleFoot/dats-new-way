@@ -115,11 +115,26 @@ def a_star_multi_goal(
                 2 * min(30, ATTRACTOR.distance(neighbor)) / game_map.size.len()
             )
 
+            other_snake_cost = 0
+            brother_mass = Vec3d(0, 0, 0)
+            for brother in game_map.snakes:
+                if brother and brother.head == start:
+                    brother_mass = brother_mass + brother.head
+
+            brother_mass = brother_mass * (1 / (len(game_map.snakes) - 1))
+            to_brother = brother_mass - neighbor
+
+            brother_cost = 1 - min(30, to_brother.len()) / 30
+
             cost = 1
             dangerous_path_cost = 1 if dangerous_path else 0
 
             tentative_gScore = (
-                gScore[current] + cost + center_cost**2 + dangerous_path_cost
+                gScore[current]
+                + cost
+                + center_cost**2
+                + dangerous_path_cost
+                + brother_cost
             )
             old_gScore = gScore.get(neighbor, float("inf"))
 
