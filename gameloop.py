@@ -7,7 +7,7 @@ from typing import Literal
 
 from algo import find_path, sort_food_by_distance, sort_food_by_price
 from client import ApiClient
-from gt import Map, Snake, Vec3d, parse_map
+from gt import Map, Snake, SnakeBrain, parse_map
 from util.itypes import TIMERS, measure
 from util.scribe import Scribe
 
@@ -97,14 +97,6 @@ class WorldBuild:
         #     m[point] = item
 
         return local
-
-
-@dataclass
-class SnakeBrain:
-    snake: Snake
-    path: list[Vec3d]
-    direction: Vec3d
-    thinks: str = "I'm a snake"
 
 
 @dataclass

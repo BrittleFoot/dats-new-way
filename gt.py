@@ -176,6 +176,14 @@ def parse_special_food(pos: tuple, type):
     return Food(coordinate=Vec3d(*pos), points=0, type=type)
 
 
+@dataclass
+class SnakeBrain:
+    snake: Snake
+    path: list[Vec3d]
+    direction: Vec3d
+    thinks: str = "I'm a snake"
+
+
 # Helper functions to convert JSON into dataclasses
 def parse_map(data: Dict[str, Any]) -> Map:
     return Map(
