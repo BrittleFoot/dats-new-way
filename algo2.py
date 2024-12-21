@@ -111,7 +111,10 @@ def a_star_multi_goal(
             direction = neighbor - current
             dangerous_path = (neighbor + direction) in bad_cells
 
-            center_cost = 2 * ATTRACTOR.distance(neighbor) / game_map.size.len()
+            center_cost = (
+                2 * min(30, ATTRACTOR.distance(neighbor)) / game_map.size.len()
+            )
+
             cost = 1
             dangerous_path_cost = 1 if dangerous_path else 0
 
@@ -245,7 +248,7 @@ def snake_ai_move_astar_multi(
         return None
 
     answer = get_next_move_astar_multi(
-        snake, map_data, radius=30, timeout=timeout, ignore=ignore
+        snake, map_data, radius=40, timeout=timeout, ignore=ignore
     )
     if not answer:
         return None

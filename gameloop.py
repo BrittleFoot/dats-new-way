@@ -176,7 +176,6 @@ class Gameloop:
         remaining_time = timeout
 
         best_food_cache = None
-        cache_idx = 0
 
         targets = set()
 
@@ -217,8 +216,12 @@ class Gameloop:
                         best_food_cache = calculate_surrounding_values(world, radius=70)
 
                 best = None
-                if not is_okraina:
-                    _, best = best_food_cache[cache_idx]
+                if not is_okraina and best_food_cache:
+                    _, best = best_food_cache[0]
+                    while best_food_cache and best.coordinate in targets:
+                        best_food_cache.pop(0)
+                        if best_food_cache:
+                            _, best = best_food_cache[0]
 
                     newcache = []
 
@@ -231,16 +234,22 @@ class Gameloop:
 
                 if best:
                     b = best.coordinate
+                    reachable = snake.head.manh(best.coordinate) < 20
 
-                    if snake.head.manh(best.coordinate) > 20:
+                    if not reachable:
                         vector_to_best = best.coordinate - snake.head
                         b = (snake.head + vector_to_best.normalize() * 10).round()
 
                     brain = find_path_brain(
-                        world, snake, b, timeout=snake_time, label="BEST"
+                        world,
+                        snake,
+                        b,
+                        timeout=snake_time,
+                        label=f"BEST {best.points, best.type} {reachable=}",
                     )
                     if brain:
                         brains.append(brain)
+                        targets.add(best.coordinate)
                         remaining_time -= perf_counter() - ai_start
                         continue
 
