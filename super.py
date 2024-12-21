@@ -138,7 +138,7 @@ class Super(DrawWorld):
 
             for point1, point2 in zip(path.path, path.path[1:]):
                 v1, z1 = point1.t2()
-                a = hide(z1)
+                a = hide(z1) * 2
 
                 v2, z2 = point2.t2()
 
@@ -239,6 +239,9 @@ class Super(DrawWorld):
                 imgui.text(f"Length: {len(snake.geometry)}")
                 imgui.text(f"Status: {snake.status}")
                 imgui.text(f" Head: {snake.head}")
+
+                path = self.gameloop.get_path(snake)
+                imgui.text(f" Path: {len(path)} cells")
 
                 if imgui.button(f"Focus##{snake.id}"):
                     self.snake = snake

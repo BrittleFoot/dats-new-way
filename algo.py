@@ -21,6 +21,8 @@ def a_star(
     enemies: List,
     timeout,
 ):
+    ATTRACTOR = SIZE / 2
+
     # Convert lists to sets for quick lookups
     fence_set = set(fences) - {start, goal}
 
@@ -60,7 +62,9 @@ def a_star(
             if nxt in fence_set or nxt in enemy_positions:
                 continue
 
-            new_cost = cost_so_far[current] + 1  # cost of moving to next cell
+            # cost of moving to next cell is less if it is closer to the center
+            cost = ATTRACTOR.distance(nxt)
+            new_cost = cost_so_far[current] + cost
             if nxt not in cost_so_far or new_cost < cost_so_far[nxt]:
                 cost_so_far[nxt] = new_cost
                 priority = new_cost + nxt.manh(goal)
@@ -68,7 +72,6 @@ def a_star(
                 heapq.heappush(frontier, (priority, new_cost, nxt))
 
     # If we exit the loop, no path was found
-    print("not found, lentgh:", len(frontier))
     return None
 
 
@@ -90,11 +93,17 @@ def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:
     if not snake.geometry:
         return []
 
+    ATTRACTOR = game_map.size / 2
+
     snake_head = snake.geometry[0]
 
     # Combine all types of food into a single list if desired
     all_food = game_map.food + game_map.golden + game_map.sus
 
+    def food_distance(food: Food):
+        # Sort by distance, using the manhattan distance defined in Vec3d
+        return snake_head.manh(food.coordinate) + ATTRACTOR.distance(food.coordinate)
+
     # Sort by distance, using the manhattan distance defined in Vec3d
-    sorted_food = sorted(all_food, key=lambda f: snake_head.manh(f.coordinate))
+    sorted_food = sorted(all_food, key=food_distance)
     return sorted_food

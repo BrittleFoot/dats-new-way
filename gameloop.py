@@ -145,6 +145,13 @@ class Gameloop:
 
         return snakes
 
+    def get_path(self, snake: Snake):
+        for p in self.paths:
+            if p.snake.id == snake.id:
+                return p.path
+
+        return []
+
     def algos(self, world: Map):
         paths = []
         for snake in world.snakes:

@@ -17,6 +17,12 @@ class Vec3d(NamedTuple):
     def manh(self, other: "Vec3d") -> int:
         return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
 
+    def len(self) -> float:
+        return (self.x**2 + self.y**2 + self.z**2) ** 0.5
+
+    def distance(self, other: "Vec3d") -> float:
+        return (self - other).len()
+
     def to2(self):
         return Vec2(self.x, self.y)
 
@@ -28,6 +34,12 @@ class Vec3d(NamedTuple):
 
     def __sub__(self, other: "Vec3d") -> "Vec3d":
         return Vec3d(self.x - other.x, self.y - other.y, self.z - other.z)
+
+    def __mul__(self, c: float) -> "Vec3d":
+        return Vec3d(self.x * c, self.y * c, self.z * c)
+
+    def __truediv__(self, c: float) -> "Vec3d":
+        return Vec3d(self.x / c, self.y / c, self.z / c)
 
     def neighbors(self):
         # Orthogonal moves: up/down/left/right/forward/back in 3D
