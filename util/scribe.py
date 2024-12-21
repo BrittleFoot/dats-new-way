@@ -1,3 +1,4 @@
+import itertools
 import json
 from logging import getLogger
 from pathlib import Path
@@ -30,9 +31,10 @@ class Scribe:
 
     #
 
-    def __init__(self, path: str, *, enabled=True):
+    def __init__(self, path: str, *, enabled=True, **kwargs):
         self.replay = Path(path)
         self.enabled = enabled
+        self.kwargs = kwargs
         if not self.enabled:
             if not self.replay.is_file():
                 raise FileNotFoundError(f"Replay file not found: {self.replay}")
@@ -61,8 +63,15 @@ class Scribe:
             logger.info("🧹 Replay file cleaned")
 
     def replay_iterator(self):
+        upto = self.kwargs.get("upto")
+
         with self.replay.open("r") as replay:
-            for line in filter(bool, map(str.strip, replay)):
+            lines = filter(bool, map(str.strip, replay))
+
+            if upto:
+                lines = itertools.islice(lines, upto)
+
+            for line in lines:
                 yield self.decode(line)
 
 

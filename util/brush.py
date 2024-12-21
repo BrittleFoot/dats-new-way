@@ -101,3 +101,29 @@ class PixelBrush:
             tuple(end),
             col=imgui.get_color_u32_rgba(*color),
         )
+
+    def arrow(self, a, b, color: Color = Color(1, 1, 1, 1), thickness=6):
+        a = self.zero + a
+        b = self.zero + b
+
+        self.draw_list.add_line(
+            a.x,
+            a.y,
+            b.x,
+            b.y,
+            imgui.get_color_u32_rgba(*color),
+            thickness,
+        )
+
+    def rect(self, a, b, color: Color = Color(1, 1, 1, 1), thickness=1):
+        a = self.zero + a
+        b = self.zero + b
+
+        self.draw_list.add_rect(
+            a.x,
+            a.y,
+            b.x,
+            b.y,
+            imgui.get_color_u32_rgba(*color),
+            thickness=thickness,
+        )

@@ -1,17 +1,19 @@
 from dataclasses import dataclass
 from logging import basicConfig
+from math import log2
 from os import environ
 from typing import NamedTuple
 
 import imgui
+import pygame
 from fire import Fire
 
 from client import ApiClient
-from draw import DrawWorld, window
+from draw import DrawWorld, key_handler, window
 from gameloop import Gameloop
 from gt import Map, Snake, Vec3d, parse_map
 from util.brush import PixelBrush
-from util.itypes import Color, Vec2
+from util.itypes import TIMERS, Color, Vec2
 
 basicConfig(
     level="INFO",
@@ -29,8 +31,10 @@ class Config:
     timepoint = 0
     realtime = True
 
+    fade = 0.06
+
+    follow = False
     current_z = 0
-    fade = 0.05
 
 
 class Super(DrawWorld):
@@ -39,6 +43,7 @@ class Super(DrawWorld):
         init: Map = None,
         game_name=None,
         replay_file=None,
+        upto=None,
     ):
         super().__init__()
 
@@ -46,6 +51,7 @@ class Super(DrawWorld):
             replay_file=replay_file,
             game_name=game_name,
             init=init,
+            upto=upto,
         ).launch_async()
 
         self.wb = self.gameloop.world_builder
@@ -61,6 +67,7 @@ class Super(DrawWorld):
         finally:
             self.gameloop.running = False
             self.running = False
+            self.gameloop.executor_thread.join()
 
     #####
     ###################################
@@ -68,66 +75,122 @@ class Super(DrawWorld):
     def draw_world(self):
         brush = PixelBrush(self)
         world = self.get_world_to_draw()
+        if not world:
+            return
 
         xy, z = world.size.t2()
 
-        if self.snake:
+        brush.rect(self.fromgrid(Vec2(0, 0) - 1), self.fromgrid(xy) + 1, thickness=2)
+
+        if self.snake and self.config.follow:
             self.config.current_z = self.snake.head.z
+            self.focus_snake(scale=False)
 
         cz = self.config.current_z
 
-        hide = lambda z: self.config.fade if z != cz else 1
+        def hide(z):
+            diff = abs(z - cz)
+            if diff == 0:
+                return 1
 
-        for path in self.gameloop.paths:
-            for point in path.path:
-                v, z = point.t2()
-                brush.square(self.fromgrid(v), Color.BLUE.but(a=hide(z)))
+            if diff > 10:
+                return self.config.fade / log2(diff)
+
+            return self.config.fade
+
+        def g(v):
+            return self.fromgrid(v)
 
         for snake in world.snakes:
             if not snake.geometry:
                 continue
 
+            if not self.snake:
+                self.snake = snake
+
             v, z = snake.head.t2()
 
             if self.snake and snake.id == self.snake.id:
-                brush.image(
-                    self.fromgrid(v), "snowman_happy", color=Color.GREEN.but(a=hide(z))
-                )
+                brush.image(g(v), "snowman_happy", color=Color.GREEN.but(a=hide(z)))
             else:
-                brush.square(self.fromgrid(v), Color.GOLD.but(a=hide(z)))
+                brush.square(g(v), Color.GOLD.but(a=hide(z)))
 
             for point in snake.body:
                 v, z = point.t2()
-                brush.square(self.fromgrid(v), Color.YELLOW.but(a=hide(z)))
+                brush.square(g(v), Color.YELLOW.but(a=hide(z)))
+
+        for path in self.gameloop.paths:
+            snake = path.snake
+            if path.direction.z != 0:
+                brush.image(
+                    g(snake.head.to2()),
+                    "trapdoor",
+                    Color.PINK.but(a=hide(snake.head.z)),
+                    scale_percent=Vec2(0.30, 0.30),
+                )
+            else:
+                brush.arrow(
+                    g(snake.head.to2()),
+                    g((snake.head + path.direction).to2()),
+                    Color.PINK.but(a=hide(snake.head.z)),
+                    thickness=10,
+                )
+
+            for point1, point2 in zip(path.path, path.path[1:]):
+                v1, z1 = point1.t2()
+                a = hide(z1)
+
+                v2, z2 = point2.t2()
+
+                if v1 == v2 and z1 != z2:
+                    brush.image(
+                        g(v1),
+                        "trapdoor",
+                        Color.BLUE.but(a=a),
+                        scale_percent=Vec2(0.25, 0.25),
+                    )
+                else:
+                    brush.arrow(g(v1), g(v2), Color.BLUE.but(a=a))
 
         for enemy in world.enemies:
             if not enemy.geometry:
                 continue
 
             v, z = enemy.head.t2()
-            brush.square(self.fromgrid(v), Color.RED.but(a=hide(z)))
+            brush.square(g(v), Color.RED.but(a=hide(z)))
             for point in enemy.body:
                 v, z = point.t2()
-                brush.square(self.fromgrid(v), Color.PINK.but(a=hide(z)))
+                brush.square(g(v), Color.PINK.but(a=hide(z)))
 
         for food in world.food:
             v, z = food.coordinate.t2()
-            brush.image(self.fromgrid(v), "gift", color=Color.WHITE.but(a=hide(z)))
+            brush.image(g(v), "gift", Color.WHITE.but(a=hide(z)))
 
         for food in world.golden:
             v, z = food.coordinate.t2()
-            brush.image(self.fromgrid(v), "gift2", color=Color.WHITE.but(a=hide(z)))
+            brush.image(g(v), "gift2", Color.WHITE.but(a=hide(z)))
 
         for food in world.sus:
             v, z = food.coordinate.t2()
-            brush.image(self.fromgrid(v), "hat", color=Color.WHITE.but(a=hide(z)))
+            brush.image(g(v), "hat", Color.WHITE.but(a=hide(z)))
 
         for fence in world.fences:
             v, z = fence.t2()
-            brush.square(self.fromgrid(v), Color.WHITE.but(a=hide(z)))
+            brush.square(g(v), Color.WHITE.but(a=hide(z)))
 
     ###################################
     #####
+
+    def focus_snake(self, scale=True):
+        if self.snake:
+            if scale:
+                self.scale = 2
+
+            self.offset = Vec2(0, 0)
+            self.offset = (
+                -self.snake.head.to2() * self.S + self.window_size / 2 / self.scale
+            )
+            self.config.current_z = self.snake.head.z
 
     def get_world_to_draw(self):
         if self.config.realtime:
@@ -141,6 +204,8 @@ class Super(DrawWorld):
         self.imgui_keybindings()
 
         w = self.get_world_to_draw()
+        if not w:
+            return
 
         C = self.config
         timelen = len(self.wb.history) - 1
@@ -160,18 +225,24 @@ class Super(DrawWorld):
                 max_value=1,
             )
 
+            _, C.follow = imgui.checkbox("Follow", C.follow)
+
+        with window("Timers"):
+            self.timers()
+
         with window("Snakes"):
-            for snake in w.snakes:
+            for snake in sorted(w.snakes, key=lambda s: s.name):
                 if self.snake and snake.id == self.snake.id:
                     imgui.text_colored("You", 0, 255, 0)
 
-                imgui.text(f"Snake: {snake.id[:5]}...")
+                imgui.text(f" Snake: {snake.name}...")
                 imgui.text(f"Length: {len(snake.geometry)}")
                 imgui.text(f"Status: {snake.status}")
-                imgui.text(f"Head: {snake.head}")
+                imgui.text(f" Head: {snake.head}")
 
                 if imgui.button(f"Focus##{snake.id}"):
                     self.snake = snake
+                    self.focus_snake()
 
                 imgui.separator()
 
@@ -191,10 +262,26 @@ class Super(DrawWorld):
 
             _, C.realtime = imgui.checkbox("Realtime", C.realtime)
 
+        self.gameloop.replay_simulate = C.timepoint
+
+    @key_handler(pygame.K_MINUS)
+    def zoom_minus(self, event):
+        if self.config.current_z >= self.get_world_to_draw().size.z:
+            return
+
+        self.config.current_z += 1
+
+    @key_handler(pygame.K_EQUALS)
+    def zoom_plus(self, event):
+        if self.config.current_z <= 0:
+            return
+
+        self.config.current_z -= 1
+
     def imgui_keybindings(self):
         C = self.config
 
-        if self.snake:
+        if self.snake and not self.gameloop.replay:
             if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=False):
                 self.gameloop.add_command(self.snake.move_command(Vec3d(-1, 0, 0)))
 
@@ -207,39 +294,49 @@ class Super(DrawWorld):
             if imgui.is_key_pressed(imgui.KEY_DOWN_ARROW, repeat=False):
                 self.gameloop.add_command(self.snake.move_command(Vec3d(0, 1, 0)))
 
+        if self.snake:
             if imgui.is_key_pressed(imgui.KEY_SPACE, repeat=False):
-                self.offset = Vec2(0, 0)
-                self.offset = (
-                    -self.snake.head.to2() * self.S + self.window_size / 2 / self.scale
+                self.focus_snake()
+
+        if self.gameloop.replay:
+            if imgui.is_key_pressed(imgui.KEY_LEFT_ARROW, repeat=True):
+                self.config.timepoint = max(0, self.config.timepoint - 1)
+                self.config.realtime = False
+
+            if imgui.is_key_pressed(imgui.KEY_RIGHT_ARROW, repeat=True):
+                self.config.timepoint = min(
+                    len(self.wb.history) - 1, self.config.timepoint + 1
                 )
+                if self.config.timepoint == len(self.wb.history) - 1:
+                    self.config.realtime = True
 
     def status_window(self):
+        imgui.text_disabled("Stts:")
+        imgui.same_line()
+        imgui.text(self.gameloop.upd.state)
+
         imgui.text_disabled("Turn:")
         imgui.same_line()
-        imgui.text(f"{self.config.timepoint}")
-        imgui.same_line()
-        imgui.text_disabled(f"out of {len(self.wb.history) - 1}")
-
-        imgui.text_disabled("Ofst:")
-        imgui.same_line()
-        imgui.text(f"{self.offset}")
+        imgui.text(f"{self.gameloop.upd.turn}")
 
         imgui.text_disabled("Scle:")
         imgui.same_line()
         imgui.text(f"{self.scale:.2f}")
 
-        imgui.text_disabled("Mise:")
-        imgui.same_line()
-        imgui.text(f"{self.window_mouse_pos}")
-
         imgui.text_disabled("Mpix:")
         imgui.same_line()
         imgui.text(f"{self.mouse_pix}")
 
+    def timers(self):
+        for name, value in TIMERS.items():
+            imgui.text_disabled(f"{name}:")
+            imgui.same_line()
+            imgui.text(f"{value*1000:.2f}ms")
 
-def main(replay_file=None):
+
+def main(replay_file=None, *, upto: int = None):
     if replay_file:
-        Super(replay_file=replay_file).start()
+        Super(replay_file=replay_file, upto=upto).start()
     else:
         rounds = ApiClient("test").rounds()
 

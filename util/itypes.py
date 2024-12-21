@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from time import perf_counter
 from typing import NamedTuple
 
 import imgui
@@ -161,3 +163,13 @@ Color.EMERALD = Color(0.31, 0.78, 0.47, 1)
 
 def clump(minimum, value, maximum):
     return max(minimum, min(value, maximum))
+
+
+TIMERS = {}
+
+
+@contextmanager
+def measure(name):
+    start = perf_counter()
+    yield
+    TIMERS[name] = perf_counter() - start

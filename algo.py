@@ -1,4 +1,5 @@
 import heapq
+import time
 from typing import Dict, List, Optional
 
 from gt import Food, Map, Snake, Vec3d
@@ -9,7 +10,17 @@ def in_bounds(v: Vec3d, SIZE):
     return 0 <= v.x < SIZE.x and 0 <= v.y < SIZE.y and 0 <= v.z < SIZE.z
 
 
-def a_star(start: Vec3d, goal: Vec3d, SIZE: Vec3d, fences: List[Vec3d], enemies: List):
+DEPTH = 666
+
+
+def a_star(
+    start: Vec3d,
+    goal: Vec3d,
+    SIZE: Vec3d,
+    fences: List[Vec3d],
+    enemies: List,
+    timeout,
+):
     # Convert lists to sets for quick lookups
     fence_set = set(fences) - {start, goal}
 
@@ -25,7 +36,13 @@ def a_star(start: Vec3d, goal: Vec3d, SIZE: Vec3d, fences: List[Vec3d], enemies:
     came_from: Dict[Vec3d, Optional[Vec3d]] = {start: None}
     cost_so_far: Dict[Vec3d, int] = {start: 0}
 
-    while frontier:
+    start_time = time.perf_counter()
+
+    while (
+        frontier
+        and time.perf_counter() - start_time < timeout
+        and len(frontier) < DEPTH
+    ):
         _, g, current = heapq.heappop(frontier)
 
         if current == goal:
@@ -51,16 +68,17 @@ def a_star(start: Vec3d, goal: Vec3d, SIZE: Vec3d, fences: List[Vec3d], enemies:
                 heapq.heappush(frontier, (priority, new_cost, nxt))
 
     # If we exit the loop, no path was found
+    print("not found, lentgh:", len(frontier))
     return None
 
 
-def find_path(map: Map, start: Vec3d, goal: Vec3d):
+def find_path(map: Map, start: Vec3d, goal: Vec3d, timeout: float):
     # Example usage:
     SIZE = map.size
     fences = map.fences
     enemies = map.snakes + map.enemies
 
-    return a_star(start, goal, SIZE, fences, enemies)
+    return a_star(start, goal, SIZE, fences, enemies, timeout)
 
 
 def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:

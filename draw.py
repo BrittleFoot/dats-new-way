@@ -171,14 +171,14 @@ class DrawWorld:
         if event.button == pygame.BUTTON_WHEELUP:
             self.zoom_in(event)
 
-    @key_handler(pygame.K_MINUS)
+    # @key_handler(pygame.K_MINUS)
     def zoom_out(self, event):
         if self.scale < self.scale_speed * 2:
             return
 
         return self.zoom(-self.scale_speed * self.scale / 2)
 
-    @key_handler(pygame.K_EQUALS)
+    # @key_handler(pygame.K_EQUALS)
     def zoom_in(self, event):
         if self.scale >= self.scale_max:
             return
@@ -236,7 +236,7 @@ class DrawWorld:
 
                 pix = PixelBrush(self)
 
-                pix.image(self.fromgrid((0, 0)), "snowman_happy")
+                pix.image(self.fromgrid((0, 0)), "tree")
 
                 self.draw_world()
 

@@ -1,8 +1,12 @@
 from dataclasses import dataclass
 from pprint import pprint
+from random import shuffle
 from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
 from util.itypes import Vec2
+
+snakes = ["Abra", "Kadabra", "Ekans"]
+id_to_name = {}
 
 
 class Vec3d(NamedTuple):
@@ -22,8 +26,8 @@ class Vec3d(NamedTuple):
     def __add__(self, other: "Vec3d") -> "Vec3d":
         return Vec3d(self.x + other.x, self.y + other.y, self.z + other.z)
 
-    def manh(self, other: "Vec3d") -> int:
-        return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)
+    def __sub__(self, other: "Vec3d") -> "Vec3d":
+        return Vec3d(self.x - other.x, self.y - other.y, self.z - other.z)
 
     def neighbors(self):
         # Orthogonal moves: up/down/left/right/forward/back in 3D
@@ -36,6 +40,7 @@ class Vec3d(NamedTuple):
             Vec3d(0, 0, 1),
             Vec3d(0, 0, -1),
         ]
+        shuffle(directions)
         for d in directions:
             yield self + d
 
@@ -64,6 +69,12 @@ class Snake:
         if not self.geometry:
             return []
         return self.geometry[1:]
+
+    @property
+    def name(self):
+        if self.id not in id_to_name:
+            id_to_name[self.id] = snakes.pop()
+        return f" {id_to_name[self.id]}#{self.id[:5]}"
 
     def __bool__(self):
         return self.status == "alive"
