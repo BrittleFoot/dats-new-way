@@ -150,6 +150,7 @@ class Gameloop:
         self.commands = []
 
         self.paths: list[SnakeBrain] = []
+        self.banned = set()
 
     def add_command(self, command):
         self.commands.append(command)
@@ -158,6 +159,9 @@ class Gameloop:
         snakes = [p.snake.move_command(p.direction) for p in self.paths]
 
         return snakes
+
+    def ban_target(self, target: Vec3d):
+        self.banned.add(target)
 
     def get_brain(self, snake: Snake):
         for p in self.paths:
@@ -201,7 +205,7 @@ class Gameloop:
                         world,
                         snake,
                         timeout=main_time,
-                        ignore=targets,
+                        ignore=targets | self.banned,
                     )
                 if brain:
                     brains.append(brain)

@@ -2,7 +2,7 @@ import pprint
 from dataclasses import dataclass
 from datetime import datetime
 from logging import basicConfig
-from math import log2
+from math import ceil, log2
 from os import environ
 from time import sleep
 from typing import NamedTuple
@@ -267,7 +267,15 @@ class Super(DrawWorld):
                     self.snake = snake
                     self.focus_snake()
 
+                if brain:
+                    target = brain.path[-1]
+                    if imgui.button(f"Ban Target {target}##{snake.id}"):
+                        self.gameloop.ban_target(target)
+
                 imgui.separator()
+
+            if imgui.button(f"Clean banned targets ({len(self.gameloop.banned)})"):
+                self.gameloop.banned = set()
 
         with window("Sacred Timeline"):
             changed, C.timepoint = imgui.slider_int(
@@ -393,7 +401,7 @@ def main(replay_file=None, *, upto: int = None):
                 f"Next game: {closest['name']} at {closest['startAt']} (in {start_in})"
             )
 
-            seconds = start_in.total_seconds()
+            seconds = ceil(start_in.total_seconds())
 
             print(f"Sleeping for {seconds} seconds")
             sleep(seconds)

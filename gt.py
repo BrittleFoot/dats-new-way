@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
 from util.itypes import Vec2
 
-snakes = ["Abra", "Kadabra", "Bobra", "Vydra", "Tundra", "sdf"][::-1]
+snakes = ["Abra", "Kadabra", "Bobra", "Vydra", "Tundra", "Mamba"][::-1]
 id_to_name = {}
 
 
