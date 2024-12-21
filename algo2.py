@@ -171,7 +171,7 @@ def pick_best_food_astar(
 
         mod = 1
         if f.type == "golden":
-            mod = 1.5
+            mod = 2
 
         score = f.points / dist * mod
         if score > best_score:

@@ -1,7 +1,8 @@
+import pprint
 from dataclasses import dataclass
 from datetime import datetime
 from logging import basicConfig
-from math import ceil, log2
+from math import log2
 from os import environ
 from time import sleep
 from typing import NamedTuple
@@ -377,6 +378,7 @@ def main(replay_file=None, *, upto: int = None):
         actives = [r for r in rounds["rounds"] if r["status"] == "active"]
 
         if len(actives) == 0:
+            pprint.pprint(rounds)
             print("No active games")
 
             now = datetime.fromisoformat(rounds["now"])
@@ -391,7 +393,7 @@ def main(replay_file=None, *, upto: int = None):
                 f"Next game: {closest['name']} at {closest['startAt']} (in {start_in})"
             )
 
-            seconds = ceil(start_in.total_seconds())
+            seconds = start_in.total_seconds()
 
             print(f"Sleeping for {seconds} seconds")
             sleep(seconds)

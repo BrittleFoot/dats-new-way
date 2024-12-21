@@ -15,7 +15,7 @@ from gt import Map, Snake, SnakeBrain, Vec3d, parse_map
 from util.itypes import TIMERS, measure
 from util.scribe import Scribe
 
-api = ApiClient("test")
+api = ApiClient("prod")
 
 logger = getLogger(__name__)
 
