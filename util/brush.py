@@ -127,3 +127,7 @@ class PixelBrush:
             imgui.get_color_u32_rgba(*color),
             thickness=thickness,
         )
+
+    def text(self, pos, text, color: Color = Color(1, 1, 1, 1)):
+        pos = self.zero + pos
+        self.draw_list.add_text(pos.x, pos.y, imgui.get_color_u32_rgba(*color), text)

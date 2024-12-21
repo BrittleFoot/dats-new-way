@@ -102,7 +102,10 @@ def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:
 
     def food_distance(food: Food):
         # Sort by distance, using the manhattan distance defined in Vec3d
-        return snake_head.manh(food.coordinate) + ATTRACTOR.distance(food.coordinate)
+        return (
+            snake_head.manh(food.coordinate)
+            + ATTRACTOR.distance(food.coordinate) ** 2 / ATTRACTOR.x
+        )
 
     # Sort by distance, using the manhattan distance defined in Vec3d
     sorted_food = sorted(all_food, key=food_distance)

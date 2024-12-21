@@ -165,6 +165,7 @@ class Super(DrawWorld):
         for food in world.food:
             v, z = food.coordinate.t2()
             brush.image(g(v), "gift", Color.WHITE.but(a=hide(z)))
+            brush.text(g(v), f"{food.points}", Color.WHITE.but(a=hide(z) * 4))
 
         for food in world.golden:
             v, z = food.coordinate.t2()

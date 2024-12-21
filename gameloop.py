@@ -167,7 +167,7 @@ class Gameloop:
 
             with measure(f"{snake.name} find_path"):
                 path = find_path(world, snake.head, goal, timeout=0.2)
-                # todo next goal - closer to center
+                # todo - next goal try 3 food or move closer to center
 
             if path and len(path) > 1:
                 direction = path[1] - path[0]
