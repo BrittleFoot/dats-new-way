@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from logging import basicConfig
 from math import log2
 from os import environ
+from pprint import pprint
 from typing import NamedTuple
 
 import imgui
@@ -67,7 +68,6 @@ class Super(DrawWorld):
         finally:
             self.gameloop.running = False
             self.running = False
-            self.gameloop.executor_thread.join()
 
     #####
     ###################################
@@ -207,6 +207,11 @@ class Super(DrawWorld):
 
         return self.wb.history[self.config.timepoint]
 
+    def labeled(self, key, value):
+        imgui.text_disabled(f"{key}:")
+        imgui.same_line()
+        imgui.text(value)
+
     def draw_ui(self):
         self.imgui_keybindings()
 
@@ -247,8 +252,13 @@ class Super(DrawWorld):
                 imgui.text(f"Status: {snake.status}")
                 imgui.text(f"  Head: {snake.head}")
 
-                path = self.gameloop.get_path(snake)
-                imgui.text(f"  Path: {len(path)} cells")
+                brain = self.gameloop.get_brain(snake)
+                if brain:
+                    self.labeled("  Path:", f"{len(brain.path)} cells")
+                    self.labeled("  Thnk:", f"{brain.thinks}")
+                else:
+                    imgui.text("  Path:  No brain")
+                    imgui.text("  Thnk:  No brain")
 
                 if imgui.button(f"Focus##{snake.id}"):
                     self.snake = snake
@@ -356,10 +366,12 @@ def main(replay_file=None, *, upto: int = None):
         Super(replay_file=replay_file, upto=upto).start()
     else:
         rounds = ApiClient("test").rounds()
+        rounds["rounds"] = [r for r in rounds["rounds"] if r["status"] != "ended"]
 
         actives = [r for r in rounds["rounds"] if r["status"] == "active"]
 
         if len(actives) == 0:
+            pprint(rounds)
             print("No active games")
             return
 

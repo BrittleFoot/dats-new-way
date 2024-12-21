@@ -94,6 +94,7 @@ class SnakeBrain:
     snake: Snake
     path: list[Vec3d]
     direction: Vec3d
+    thinks: str = "I'm a snake"
 
 
 @dataclass
@@ -152,12 +153,12 @@ class Gameloop:
 
         return snakes
 
-    def get_path(self, snake: Snake):
+    def get_brain(self, snake: Snake):
         for p in self.paths:
             if p.snake.id == snake.id:
-                return p.path
+                return p
 
-        return []
+        return None
 
     def algos(self, world: Map, timeout):
         paths = []
@@ -180,16 +181,33 @@ class Gameloop:
             with measure(f"{snake.name} find_path"):
                 start = perf_counter()
 
-                path = find_path(
-                    world, snake.head, goal, timeout=remaining_time / (len(snakes) - i)
-                )
+                local_timeout = remaining_time / (len(snakes) - i)
+
+                path = find_path(world, snake.head, goal, timeout=local_timeout)
+
+                if path and len(path) > 1:
+                    direction = path[1] - path[0]
+                    paths.append(SnakeBrain(snake, path, direction, "FOOD"))
+
+                if not path:
+                    center = world.size / 2
+
+                    # if (center - snake.head).len() < self.world.size.len() / 8:
+                    #     continue
+
+                    to_center = (center - snake.head).normalize() * 10
+
+                    b = (snake.head + to_center).round()
+
+                    with measure(f"{snake.name} find_path to center {b}"):
+                        path = find_path(world, snake.head, b, local_timeout)
+
+                    if path and len(path) > 1:
+                        direction = path[1] - path[0]
+                        paths.append(SnakeBrain(snake, path, direction, "CENTER "))
 
                 remaining_time -= perf_counter() - start
                 # todo - next goal try 3 food or move closer to center
-
-            if path and len(path) > 1:
-                direction = path[1] - path[0]
-                paths.append(SnakeBrain(snake, path, direction))
 
         self.paths = paths
 
@@ -197,6 +215,7 @@ class Gameloop:
         logger.info("Gameloop started")
         try:
             while self.running:
+                print("LOOP")
                 with measure("world_load"):
                     self.upd.state = "Network"
                     self.world = self.world_builder.load_world_state(self.commands)
@@ -215,7 +234,7 @@ class Gameloop:
                 # assume that second call will be the same
                 # save time for network call
                 dt = TIMERS["world_load"]
-                timeout = self.world.tick_remain_ms - dt
+                timeout = self.world.tick_remain_ms / 1000 - dt
 
                 if self.replay:
                     # just some reasonable value
@@ -240,6 +259,7 @@ class Gameloop:
                     # 2
                     if not self.replay:
                         with measure("gameloop_sleep"):
+                            print("SLEEP", timeout)
                             sleep(max(0, timeout))
 
         except Exception as e:

@@ -40,6 +40,14 @@ class Vec3d(NamedTuple):
     def __truediv__(self, c: float) -> "Vec3d":
         return Vec3d(self.x / c, self.y / c, self.z / c)
 
+    def normalize(self) -> "Vec3d":
+        if self == Vec3d(0, 0, 0):
+            return self
+        return self / self.len()
+
+    def round(self):
+        return Vec3d(round(self.x), round(self.y), round(self.z))
+
     def neighbors(self):
         # Orthogonal moves: up/down/left/right/forward/back in 3D
         # You can add more if diagonals or other moves are allowed.
