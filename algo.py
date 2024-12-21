@@ -10,7 +10,7 @@ def in_bounds(v: Vec3d, SIZE):
     return 0 <= v.x < SIZE.x and 0 <= v.y < SIZE.y and 0 <= v.z < SIZE.z
 
 
-DEPTH = 1000
+DEPTH = 2000
 
 
 def a_star(
@@ -98,15 +98,39 @@ def sort_food_by_distance(game_map: Map, snake: Snake) -> list[Food]:
     snake_head = snake.geometry[0]
 
     # Combine all types of food into a single list if desired
-    all_food = game_map.food + game_map.golden + game_map.sus
+    all_food = game_map.food
 
     def food_distance(food: Food):
         # Sort by distance, using the manhattan distance defined in Vec3d
+        if food.points <= 0:
+            return 2**31
+
+        mod = 1
+        if food.type == "golden":
+            mod = 0.5
+
         return (
             snake_head.manh(food.coordinate)
-            + ATTRACTOR.distance(food.coordinate) ** 2 / ATTRACTOR.x
+            + ATTRACTOR.distance(food.coordinate) ** 2 / ATTRACTOR.x * mod
         )
 
     # Sort by distance, using the manhattan distance defined in Vec3d
     sorted_food = sorted(all_food, key=food_distance)
+    return sorted_food
+
+
+def sort_food_by_price(game_map: Map, snake: Snake, radius) -> list[Food]:
+    """
+    Returns a list of all food (normal, golden, suspicious) sorted
+    by their points.
+    """
+    # Combine all types of food into a single list if desired
+    all_food = game_map.food
+
+    all_food = [
+        food for food in all_food if snake.head.distance(food.coordinate) <= radius
+    ]
+
+    # Sort by points
+    sorted_food = sorted(all_food, key=lambda food: food.points, reverse=True)
     return sorted_food

@@ -188,7 +188,7 @@ class Super(DrawWorld):
     ###################################
     #####
 
-    def focus_snake(self, scale=True):
+    def focus_snake(self, scale=False):
         if self.snake:
             if scale:
                 self.scale = 2

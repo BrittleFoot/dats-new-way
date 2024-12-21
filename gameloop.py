@@ -5,7 +5,7 @@ from random import shuffle
 from time import perf_counter, sleep
 from typing import Literal
 
-from algo import find_path, sort_food_by_distance
+from algo import find_path, sort_food_by_distance, sort_food_by_price
 from client import ApiClient
 from gt import Map, Snake, Vec3d, parse_map
 from util.itypes import TIMERS, measure
@@ -80,6 +80,16 @@ class WorldBuild:
         return combined
 
     def merge_world(self, glob: Map, local: Map):
+        foodmap = {f.coordinate: f for f in local.food}
+
+        for item in local.sus:
+            if item.coordinate in foodmap:
+                foodmap[item.coordinate].type = "suspicious"
+
+        for item in local.golden:
+            if item.coordinate in foodmap:
+                foodmap[item.coordinate].type = "golden"
+
         # m = deepcopy(glob.map)
 
         # for item in local.map:
@@ -192,7 +202,7 @@ class Gameloop:
                 center = world.size / 2
                 to_center = center - snake.head
 
-                if not path and to_center.len() > world.size.len() / 8:
+                if not path and to_center.len() > world.size.len() / 4:
                     to_center_unit = to_center.normalize() * min(
                         10, to_center.len() - 3
                     )
@@ -206,13 +216,13 @@ class Gameloop:
                         paths.append(SnakeBrain(snake, path, direction, "CENTER "))
 
                 if not path and len(food) > 1:
-                    next_food = food[1].coordinate
+                    next_food = sort_food_by_price(world, snake, 40)[0].coordinate
 
                     path = find_path(world, snake.head, next_food, local_timeout)
 
                     if path and len(path) > 1:
                         direction = path[1] - path[0]
-                        paths.append(SnakeBrain(snake, path, direction, "NEXT FOOD"))
+                        paths.append(SnakeBrain(snake, path, direction, "JUSY FOOD"))
 
                 remaining_time -= perf_counter() - start
                 # todo - next goal try 3 food or move closer to center
