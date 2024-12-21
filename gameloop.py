@@ -189,22 +189,30 @@ class Gameloop:
                     direction = path[1] - path[0]
                     paths.append(SnakeBrain(snake, path, direction, "FOOD"))
 
-                if not path:
-                    center = world.size / 2
+                center = world.size / 2
+                to_center = center - snake.head
 
-                    # if (center - snake.head).len() < self.world.size.len() / 8:
-                    #     continue
+                if not path and to_center.len() > world.size.len() / 8:
+                    to_center_unit = to_center.normalize() * min(
+                        10, to_center.len() - 3
+                    )
 
-                    to_center = (center - snake.head).normalize() * 10
+                    b = (snake.head + to_center_unit).round()
 
-                    b = (snake.head + to_center).round()
-
-                    with measure(f"{snake.name} find_path to center {b}"):
-                        path = find_path(world, snake.head, b, local_timeout)
+                    path = find_path(world, snake.head, b, local_timeout)
 
                     if path and len(path) > 1:
                         direction = path[1] - path[0]
                         paths.append(SnakeBrain(snake, path, direction, "CENTER "))
+
+                if not path and len(food) > 1:
+                    next_food = food[1].coordinate
+
+                    path = find_path(world, snake.head, next_food, local_timeout)
+
+                    if path and len(path) > 1:
+                        direction = path[1] - path[0]
+                        paths.append(SnakeBrain(snake, path, direction, "NEXT FOOD"))
 
                 remaining_time -= perf_counter() - start
                 # todo - next goal try 3 food or move closer to center
@@ -215,7 +223,6 @@ class Gameloop:
         logger.info("Gameloop started")
         try:
             while self.running:
-                print("LOOP")
                 with measure("world_load"):
                     self.upd.state = "Network"
                     self.world = self.world_builder.load_world_state(self.commands)
@@ -259,7 +266,6 @@ class Gameloop:
                     # 2
                     if not self.replay:
                         with measure("gameloop_sleep"):
-                            print("SLEEP", timeout)
                             sleep(max(0, timeout))
 
         except Exception as e:
