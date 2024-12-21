@@ -273,7 +273,7 @@ class DrawWorld:
 
     def _status_window(self):
         with color(imgui.COLOR_CHILD_BACKGROUND, Color(0.1, 0.2, 0.1, 0.7)):
-            with child("State", border=True, width=180, height=100):
+            with child("State", border=True, width=180, height=120):
                 self.status_window()
 
     def status_window(self):

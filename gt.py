@@ -40,6 +40,12 @@ class Vec3d(NamedTuple):
     def __truediv__(self, c: float) -> "Vec3d":
         return Vec3d(self.x / c, self.y / c, self.z / c)
 
+    def dot(self, other: "Vec3d") -> float:
+        return self.x * other.x + self.y * other.y + self.z * other.z
+
+    def cos_to(self, other: "Vec3d") -> float:
+        return self.dot(other) / (self.len() * other.len())
+
     def normalize(self) -> "Vec3d":
         if self == Vec3d(0, 0, 0):
             return self

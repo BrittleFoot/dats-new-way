@@ -171,14 +171,23 @@ class Gameloop:
 
         snakes = list(filter(bool, world.snakes))
         shuffle(snakes)
+        snakes = sorted(snakes, key=lambda x: x.id)
 
         remaining_time = timeout
 
         best_food_cache = None
         cache_idx = 0
 
+        targets = set()
+
         for i, snake in enumerate(snakes):
             snake_time = remaining_time / (len(snakes) - i)
+
+            center = world.size / 2
+            radius = center.len() / 2
+            to_center = center - snake.head
+            is_okraina = to_center.len() > 2 * radius / 3
+            is_okraina = False
 
             with measure(f"{snake.name} find_path"):
                 ai_start = perf_counter()
@@ -186,20 +195,39 @@ class Gameloop:
                 snake_time = remaining_time / (len(snakes) - i)
                 main_time = snake_time * 0.8
 
-                brain = snake_ai_move_astar_multi(world, snake, timeout=main_time)
+                if is_okraina:
+                    brain = None
+                else:
+                    brain = snake_ai_move_astar_multi(
+                        world,
+                        snake,
+                        timeout=main_time,
+                        ignore=targets,
+                    )
                 if brain:
                     brains.append(brain)
                     remaining_time -= perf_counter() - ai_start
+                    targets.add(brain.path[-1])
                     continue
 
                 snake_time -= perf_counter() - ai_start
 
-                if not best_food_cache:
+                if not best_food_cache and not is_okraina:
                     with measure("calculate_surroundings"):
                         best_food_cache = calculate_surrounding_values(world, radius=70)
 
-                _, best = best_food_cache[cache_idx]
-                cache_idx += 1
+                best = None
+                if not is_okraina:
+                    _, best = best_food_cache[cache_idx]
+
+                    newcache = []
+
+                    for _, food in best_food_cache:
+                        if food.coordinate not in targets:
+                            if best.coordinate.distance(food.coordinate) > 35:
+                                newcache.append((_, food))
+
+                    best_food_cache = newcache
 
                 if best:
                     b = best.coordinate
@@ -222,7 +250,11 @@ class Gameloop:
                 if to_center.len() > world.size.len() / 16:
                     b = (snake.head + to_center_unit).round()
                     brain = find_path_brain(
-                        world, snake, b, timeout=snake_time, label="CENTER"
+                        world,
+                        snake,
+                        b,
+                        timeout=snake_time,
+                        label="RUN AWAY" if is_okraina else "CENTER",
                     )
                     if brain:
                         brains.append(brain)
@@ -290,7 +322,7 @@ class Gameloop:
                     # 2
                     if not self.replay:
                         with measure("gameloop_sleep"):
-                            sleep(max(0, timeout + 0.02))
+                            sleep(max(0, timeout + 0.09))
 
         except Exception as e:
             logger.error("Gameloop error", exc_info=e)

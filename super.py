@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
 from logging import basicConfig
-from math import log2
+from math import ceil, log2
 from os import environ
-from pprint import pprint
+from time import sleep
 from typing import NamedTuple
 
 import imgui
@@ -34,7 +35,7 @@ class Config:
 
     fade = 0.06
 
-    follow = False
+    follow = True
     current_z = 0
 
 
@@ -84,8 +85,6 @@ class Super(DrawWorld):
                     self.snake = s
 
         xy, z = world.size.t2()
-
-        brush.rect(self.fromgrid(Vec2(0, 0) - 1), self.fromgrid(xy) + 1, thickness=2)
 
         if self.snake and self.config.follow:
             self.config.current_z = self.snake.head.z
@@ -184,6 +183,8 @@ class Super(DrawWorld):
         for fence in world.fences:
             v, z = fence.t2()
             brush.square(g(v), Color.WHITE.but(a=hide(z)))
+
+        brush.rect(self.fromgrid(Vec2(0, 0) - 1), self.fromgrid(xy) + 1, thickness=2)
 
     ###################################
     #####
@@ -335,6 +336,8 @@ class Super(DrawWorld):
                     self.config.realtime = True
 
     def status_window(self):
+        w = self.get_world_to_draw()
+
         imgui.text_disabled("Stts:")
         imgui.same_line()
         imgui.text(self.gameloop.upd.state)
@@ -355,6 +358,8 @@ class Super(DrawWorld):
         imgui.same_line()
         imgui.text(f"{self.mouse_pix}")
 
+        self.labeled("  KD", f"{w.revive_timeout}")
+
     def timers(self):
         for name, value in TIMERS.items():
             imgui.text_disabled(f"{name}:")
@@ -372,9 +377,25 @@ def main(replay_file=None, *, upto: int = None):
         actives = [r for r in rounds["rounds"] if r["status"] == "active"]
 
         if len(actives) == 0:
-            pprint(rounds)
             print("No active games")
-            return
+
+            now = datetime.fromisoformat(rounds["now"])
+            closest = min(
+                rounds["rounds"],
+                key=lambda r: abs(datetime.fromisoformat(r["startAt"]) - now),
+            )
+
+            start_in = datetime.fromisoformat(closest["startAt"]) - now
+
+            print(
+                f"Next game: {closest['name']} at {closest['startAt']} (in {start_in})"
+            )
+
+            seconds = ceil(start_in.total_seconds())
+
+            print(f"Sleeping for {seconds} seconds")
+            sleep(seconds)
+            return main()
 
         active = actives[0]
 

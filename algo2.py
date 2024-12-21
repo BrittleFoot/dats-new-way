@@ -36,6 +36,7 @@ def a_star_multi_goal(
     goal_positions: List[Vec3d],
     game_map: Map,
     timeout: float,
+    ignore: set,
 ) -> Tuple[Dict[Vec3d, int], Dict[Vec3d, Vec3d]]:
     """
     Runs A* from 'start' to find paths to any of the 'goal_positions'.
@@ -55,9 +56,7 @@ def a_star_multi_goal(
 
     for enemy in game_map.enemies:
         bad_cells.update(enemy.geometry)
-
-        for seg in enemy.head.neighbors():
-            bad_cells.update(seg.neighbors())
+        bad_cells.update(enemy.head.neighbors())
 
     ATTRACTOR = game_map.size / 2
 
@@ -95,6 +94,10 @@ def a_star_multi_goal(
                 break
 
         # Explore neighbors
+        neighbors = current.neighbors()
+        # sort by angle to target
+        neighbors = sorted(neighbors, key=lambda x: x.cos_to(ATTRACTOR))
+
         for neighbor in current.neighbors():
             if not is_valid_cell(neighbor, game_map):
                 continue
@@ -102,9 +105,19 @@ def a_star_multi_goal(
             if neighbor in bad_cells:
                 continue
 
-            center_cost = ATTRACTOR.distance(neighbor) / game_map.size.len()
+            if neighbor in ignore:
+                continue
+
+            direction = neighbor - current
+            dangerous_path = (neighbor + direction) in bad_cells
+
+            center_cost = 2 * ATTRACTOR.distance(neighbor) / game_map.size.len()
             cost = 1
-            tentative_gScore = gScore[current] + cost + center_cost**2
+            dangerous_path_cost = 1 if dangerous_path else 0
+
+            tentative_gScore = (
+                gScore[current] + cost + center_cost**2 + dangerous_path_cost
+            )
             old_gScore = gScore.get(neighbor, float("inf"))
 
             if tentative_gScore < old_gScore:
@@ -167,7 +180,8 @@ def get_next_move_astar_multi(
     game_map: Map,
     radius: int,
     timeout: float,
-) -> Optional[Vec3d]:
+    ignore: set,
+):
     """
     1. Filter food by radius (optional).
     2. Run A* from snake head to all goals (foods).
@@ -196,7 +210,13 @@ def get_next_move_astar_multi(
     goal_positions = [f.coordinate for f in candidate_food]
 
     # 2. Run multi-goal A*
-    gScore, came_from = a_star_multi_goal(snake_head, goal_positions, game_map, timeout)
+    gScore, came_from = a_star_multi_goal(
+        snake_head,
+        goal_positions,
+        game_map,
+        timeout,
+        ignore,
+    )
 
     # 3. Pick best ratio
     best_food = pick_best_food_astar(candidate_food, gScore)
@@ -215,20 +235,24 @@ def get_next_move_astar_multi(
     return direction, path, best_food
 
 
-def snake_ai_move_astar_multi(map_data: Map, snake: Snake, timeout) -> Dict:
+def snake_ai_move_astar_multi(
+    map_data: Map, snake: Snake, timeout, ignore
+) -> SnakeBrain:
     """
     Example function that picks a direction for our snake using multi-goal A*.
     """
     if not snake:
         return None
 
-    answer = get_next_move_astar_multi(snake, map_data, radius=20, timeout=timeout)
+    answer = get_next_move_astar_multi(
+        snake, map_data, radius=30, timeout=timeout, ignore=ignore
+    )
     if not answer:
         return None
 
     direction, path, food = answer
 
-    return SnakeBrain(snake, path, direction, f"FOOD {food}")
+    return SnakeBrain(snake, path, direction, f"FOOD {(food.points, food.type)}")
 
 
 def find_best_food_with_surrounding_value(map_data: Map, radius: int = 70):
@@ -267,7 +291,7 @@ def find_best_food_with_surrounding_value(map_data: Map, radius: int = 70):
 def calculate_surrounding_values(
     map_data: Map,
     radius: int = 30,
-) -> List[Tuple[Food, int]]:
+):
     """
     Returns a list of (food_item, total_sum) for each food in the map,
     where 'total_sum' is the sum of points of all foods within distance <= radius

@@ -30,6 +30,8 @@ def a_star(
     # Flatten enemy positions into a set
     enemy_positions = {seg for e in enemies for seg in e.geometry} - {start, goal}
 
+    bad_cells = fence_set | enemy_positions
+
     # Priority queue for frontier
     # Each entry: (f_cost, g_cost, current_position)
     frontier = []
@@ -56,16 +58,26 @@ def a_star(
             path.reverse()
             return path  # This is your found path
 
-        for nxt in current.neighbors():
+        neighbors = current.neighbors()
+        neighbors = sorted(neighbors, key=lambda x: x.cos_to(ATTRACTOR))
+
+        for nxt in neighbors:
             if not in_bounds(nxt, SIZE):
                 continue
             if nxt in fence_set or nxt in enemy_positions:
                 continue
 
             # cost of moving to next cell is less if it is closer to the center
-            cost = ATTRACTOR.distance(nxt)
+            direction = nxt - current
+            dangerous_path = (nxt + direction) in bad_cells
+
+            center_cost = 2 * ATTRACTOR.distance(nxt) / SIZE.len()
             cost = 1
-            new_cost = cost_so_far[current] + cost
+            dangerous_path_cost = 1 if dangerous_path else 0
+
+            full_cost = cost + center_cost**2 + dangerous_path_cost
+
+            new_cost = cost_so_far[current] + full_cost
             if nxt not in cost_so_far or new_cost < cost_so_far[nxt]:
                 cost_so_far[nxt] = new_cost
                 priority = new_cost + nxt.manh(goal)
