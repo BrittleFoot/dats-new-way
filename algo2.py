@@ -112,7 +112,7 @@ def a_star_multi_goal(
             dangerous_path = (neighbor + direction) in bad_cells
 
             center_cost = (
-                2 * min(30, ATTRACTOR.distance(neighbor)) / game_map.size.len()
+                2 * min(45, ATTRACTOR.distance(neighbor)) / game_map.size.len()
             )
 
             other_snake_cost = 0
@@ -124,18 +124,12 @@ def a_star_multi_goal(
             brother_mass = brother_mass * (1 / (len(game_map.snakes) - 1))
             to_brother = brother_mass - neighbor
 
-            brother_cost = 1 - min(30, to_brother.len()) / 30
+            brother_cost = 1 - min(45, to_brother.len()) / 45
 
             cost = 1
             dangerous_path_cost = 1 if dangerous_path else 0
 
-            tentative_gScore = (
-                gScore[current]
-                + cost
-                + center_cost**2
-                + dangerous_path_cost
-                + brother_cost
-            )
+            tentative_gScore = gScore[current] + cost + dangerous_path_cost
             old_gScore = gScore.get(neighbor, float("inf"))
 
             if tentative_gScore < old_gScore:
@@ -171,7 +165,7 @@ def pick_best_food_astar(
 
         mod = 1
         if f.type == "golden":
-            mod = 2
+            mod = 100
 
         score = f.points * mod / dist
         if score > best_score:
@@ -268,7 +262,7 @@ def snake_ai_move_astar_multi(
         return None
 
     answer = get_next_move_astar_multi(
-        snake, map_data, radius=40, timeout=timeout, ignore=ignore
+        snake, map_data, radius=50, timeout=timeout, ignore=ignore
     )
     if not answer:
         return None

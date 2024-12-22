@@ -152,6 +152,8 @@ class Gameloop:
         self.paths: list[SnakeBrain] = []
         self.banned = set()
 
+        self.latest_targets = {}
+
     def add_command(self, command):
         self.commands.append(command)
 
@@ -201,16 +203,21 @@ class Gameloop:
                 if is_okraina:
                     brain = None
                 else:
+                    not_my_targets = {
+                        v for k, v in self.latest_targets.items() if k != snake.id
+                    }
+
                     brain = snake_ai_move_astar_multi(
                         world,
                         snake,
                         timeout=main_time,
-                        ignore=targets | self.banned,
+                        ignore=targets | self.banned | not_my_targets,
                     )
                 if brain:
                     brains.append(brain)
                     remaining_time -= perf_counter() - ai_start
                     targets.add(brain.path[-1])
+                    self.latest_targets[snake.id] = brain.path[-1]
                     continue
 
                 snake_time -= perf_counter() - ai_start

@@ -269,6 +269,7 @@ class Super(DrawWorld):
 
                 if brain:
                     target = brain.path[-1]
+                    imgui.same_line()
                     if imgui.button(f"Ban Target {target}##{snake.id}"):
                         self.gameloop.ban_target(target)
 
@@ -276,6 +277,21 @@ class Super(DrawWorld):
 
             if imgui.button(f"Clean banned targets ({len(self.gameloop.banned)})"):
                 self.gameloop.banned = set()
+
+            imgui.separator()
+
+            if self.snake:
+                golden = [f for f in w.food if f.type == "golden"]
+                sorted_golden = sorted(
+                    golden, key=lambda f: f.coordinate.manh(self.snake.head)
+                )
+
+                for food in sorted_golden[:5]:
+                    dist = food.coordinate.manh(self.snake.head)
+                    if imgui.button(
+                        f"Go to {food.coordinate}, {dist}##{food.coordinate}"
+                    ):
+                        pass
 
         with window("Sacred Timeline"):
             changed, C.timepoint = imgui.slider_int(
@@ -308,6 +324,13 @@ class Super(DrawWorld):
             return
 
         self.config.current_z -= 1
+
+    @key_handler(pygame.K_BACKSPACE)
+    def ban_target(self, event):
+        if self.snake:
+            brain = self.gameloop.get_brain(self.snake)
+            if brain:
+                self.gameloop.ban_target(brain.path[-1])
 
     def imgui_keybindings(self):
         C = self.config
