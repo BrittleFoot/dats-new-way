@@ -61,7 +61,7 @@ class DbActions:
                 print(f"📊 ➡️ {name}: {count} turns recorded")
             print(f"📊 Total replays: {len(summary)}")
 
-    def upload(self, name: str):
+    def upload(self, name: str, *, batch: int = 3000):
         path = Path(name)
         if not path.is_file():
             print(f"🥵 File `{name}` not found")
@@ -75,7 +75,6 @@ class DbActions:
         if lines >= 0:
             print(f"🛢️ ➡️ {lines} lines")
 
-        batch = 3000
         total = 0
 
         with db() as conn, conn.cursor() as cur:
