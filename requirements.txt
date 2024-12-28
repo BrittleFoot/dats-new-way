@@ -1,13 +1,21 @@
+# general sweets
 httpx[http2]
 python-dotenv
 fire
 
+# Database
+psycopg[binary]
+psycopg2-binary
+
+# Test server
 fastapi
 uvicorn
 
+# Visualisation
 pygame
 imgui[pygame]
 numpy
 
-PyOpenGL @ git+https://github.com/mcfletch/pyopengl.git@release-3.1.8#egg=PyOpenGL
-PyOpenGL_accelerate @ git+https://github.com/mcfletch/pyopengl.git@release-3.1.8#egg=PyOpenGL_accelerate&subdirectory=accelerate
+# Works on windows
+# PyOpenGL @ git+https://github.com/mcfletch/pyopengl.git@release-3.1.8#egg=PyOpenGL
+# PyOpenGL_accelerate @ git+https://github.com/mcfletch/pyopengl.git@release-3.1.8#egg=PyOpenGL_accelerate&subdirectory=accelerate
