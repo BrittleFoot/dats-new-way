@@ -7,6 +7,10 @@ fire
 psycopg[binary]
 psycopg2-binary
 
+# Websockets
+websockets
+asyncpg
+
 # Test server
 fastapi
 uvicorn
