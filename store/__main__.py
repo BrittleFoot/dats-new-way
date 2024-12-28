@@ -29,6 +29,7 @@ class DbActions:
                             created_at TIMESTAMP DEFAULT NOW()
                         )
                         """)
+            cur.execute('CREATE INDEX idx_name_turn ON replays (name, turn)')
             conn.commit()
         print("🛢️ ✅ Done")
 
