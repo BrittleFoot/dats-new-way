@@ -7,13 +7,12 @@ except ImportError:
     import psycopg2 as psycopg
     from psycopg2.extras import Json as Jsonb
 
-import asyncpg
 
 DATABASE_URL = "postgres://postgres@localhost:5400/postgres"
 
 
-def async_db():
-    return asyncpg.connect(DATABASE_URL)
+async def async_db():
+    return await psycopg.AsyncConnection.connect(DATABASE_URL)
 
 
 def db():
