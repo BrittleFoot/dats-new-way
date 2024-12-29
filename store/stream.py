@@ -58,6 +58,10 @@ async def db_summary(conn):
         await cur.execute("SELECT name, MAX(turn) FROM replays GROUP BY name")
         return rsp_summary(await cur.fetchall())
 
+async def db_replay(cur, name, turn, batch_size):
+    await cur.execute(SELECT_REPLAY_QUERY, dict(name=name, turn=turn, batch_size=batch_size))
+    return list(map(replay2dict, await cur.fetchall()))
+
 # WebSocket handler
 async def handle_client(websocket, path):
     avatar = next(client_avatars)
@@ -69,38 +73,57 @@ async def handle_client(websocket, path):
     # Extract specific parameters if available
     name = query_params.get('name', [None])[0]
     turn = int(query_params.get('turn', [0])[0])
-    nowelcome = query_params.get('nowelcome', [None])[0]
-    should_welcome = not nowelcome
+    should_welcome = not query_params.get('nowelcome', [None])[0]
+    rate = float(query_params.get('rate',[1/8])[0])
 
     batch_size = 5
     stream_modifier = 1
 
     streaming = name is not None
-    rate = 1
+    shared = dict()
 
     async with await async_db() as conn, conn.cursor() as cur:
 
         async def stream_data():
-            nonlocal name, turn, streaming, stream_modifier
+            nonlocal name, turn, streaming, stream_modifier, shared
             while True:
                 # Stream ended, or paused
                 if not streaming:
                     await asyncio.sleep(rate)
                     continue
 
+                initial_turn = turn
+
+                while turn in shared:
+                    turn = shared[turn]
+
                 size = batch_size * stream_modifier
-                await cur.execute(SELECT_REPLAY_QUERY, dict(name=name, turn=turn, batch_size=size))
-                batch = list(map(replay2dict, await cur.fetchall()))
+                batch = await db_replay(cur, name, turn, size)
 
                 if not batch:
                     streaming = False
                     print(f"\n{avatar} 🏁 Streaming completed")
                     break
 
+                # use initial_turn instead of first turn in batch
+                # to mark missing turns as shared too
+                # shared_start = batch[0]["turn"]
+                shared_start = initial_turn
+                shared_end = batch[-1]["turn"]
+
+                next_turn = shared_end + 1
+
+                while next_turn in shared:
+                    next_turn = shared[next_turn]
+
+                for i in range(shared_start, next_turn):
+                    shared[i] = next_turn
+
                 print(avatar, end="", flush=True)
 
                 await websocket.send(json.dumps(rsp_replay(batch)))
-                turn = batch[-1]["turn"] + 1
+                stream_modifier = min(stream_modifier * 2, 4)
+                turn = next_turn
 
                 await asyncio.sleep(rate)  # Control streaming rate
 
@@ -117,14 +140,11 @@ async def handle_client(websocket, path):
                 message = await websocket.recv()
                 data = json.loads(message)
 
-                # Validate incoming data
-                if "name" in data:
-                    name = data["name"]
-                    turn = data.get("turn", 0)
-                    streaming = True  # Resume streaming with new parameters
-                    await websocket.send(json.dumps({"status": "streaming updated"}))
-                else:
-                    await websocket.send(json.dumps({"error": "Invalid command"}))
+                match data:
+                    case {"type": "seek", "turn": int(ask_turn)}:
+                        streaming = True
+                        turn = ask_turn
+                        print(f"\n{avatar} 🏃 Seeking to turn {turn}")
 
         except websockets.ConnectionClosed:
             print(f"\n{avatar} 😵 Client disconnected")
