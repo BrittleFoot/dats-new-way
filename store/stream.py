@@ -17,8 +17,6 @@ client_avatars = cycle(client_emoji)
 
 
 
-MIN_BATCH_SIZE = 1
-
 SELECT_REPLAY_QUERY = """
     SELECT id, turn, data
     FROM replays
@@ -75,8 +73,9 @@ async def handle_client(websocket, path):
     turn = int(query_params.get('turn', [0])[0])
     should_welcome = not query_params.get('nowelcome', [None])[0]
     rate = float(query_params.get('rate',[1/8])[0])
+    batch_size = int(query_params.get('batch', [5])[0])
+    combo = int(query_params.get('combo',[16])[0])
 
-    batch_size = 5
     stream_modifier = 1
 
     streaming = name is not None
@@ -85,7 +84,7 @@ async def handle_client(websocket, path):
     async with await async_db() as conn, conn.cursor() as cur:
 
         async def stream_data():
-            nonlocal name, turn, streaming, stream_modifier, shared
+            nonlocal name, turn, streaming, stream_modifier, shared, combo
             while True:
                 # Stream ended, or paused
                 if not streaming:
@@ -122,7 +121,7 @@ async def handle_client(websocket, path):
                 print(avatar, end="", flush=True)
 
                 await websocket.send(json.dumps(rsp_replay(batch)))
-                stream_modifier = min(stream_modifier * 2, 4)
+                stream_modifier = min(stream_modifier * 2, combo)
                 turn = next_turn
 
                 await asyncio.sleep(rate)  # Control streaming rate
@@ -144,6 +143,7 @@ async def handle_client(websocket, path):
                     case {"type": "seek", "turn": int(ask_turn)}:
                         streaming = True
                         turn = ask_turn
+                        stream_modifier = 1
                         print(f"\n{avatar} 🏃 Seeking to turn {turn}")
 
         except websockets.ConnectionClosed:
