@@ -328,7 +328,7 @@ class Gameloop:
                 # (тут есть гибкость еще оттянуть время)
                 # потом идет в 2, спит, и по кругу
 
-                if not self.upd.algo_done:
+                if not self.upd.algo_done and False:
                     # 1
                     with measure("algo"):
                         self.upd.state = "Algorithm"
@@ -337,7 +337,7 @@ class Gameloop:
 
                 else:
                     if self.replay:
-                        sleep(0.33)
+                        sleep(0.01)
 
                     # 2
                     if not self.replay:

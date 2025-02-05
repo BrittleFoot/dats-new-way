@@ -390,7 +390,8 @@ class Super(DrawWorld):
         imgui.same_line()
         imgui.text(f"{self.mouse_pix}")
 
-        self.labeled("  KD", f"{w.revive_timeout}")
+        if w:
+            self.labeled("  KD", f"{w.revive_timeout}")
 
     def timers(self):
         for name, value in TIMERS.items():
